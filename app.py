@@ -1,15 +1,17 @@
 """
 💍 Gerenciador de Casamento
 Aplicação em Streamlit para planejamento completo de casamento
+Com persistência de dados no Supabase (PostgreSQL na nuvem)
 """
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from utils.data_manager import (
-    load_json, save_json, 
-    get_default_items, get_default_config, get_default_tasks
+from utils.supabase_client import (
+    get_all_items, add_item, update_item, delete_item, update_all_items,
+    get_all_tasks, add_task, update_task, delete_task,
+    get_config, update_config, update_all_config
 )
 from utils.calculations import (
     calcular_total_orcado, calcular_reserva, calcular_porcentagem_usada,
@@ -45,10 +47,11 @@ st.title("💍 Gerenciador de Casamento")
 st.markdown("### Organize seu grande dia com amor e planejamento! 💕")
 st.markdown("---")
 
-# Carregar dados
-items = load_json("items.json", get_default_items())
-config = load_json("config.json", get_default_config())
-tasks = load_json("tasks.json", get_default_tasks())
+# Carregar dados do Supabase
+with st.spinner("⏳ Carregando dados do Supabase..."):
+    items = get_all_items()
+    config = get_config()
+    tasks = get_all_tasks()
 
 # Sidebar para navegação
 st.sidebar.title("📋 Menu de Navegação")
@@ -69,7 +72,7 @@ if menu_option == "🏠 Dashboard":
     
     # Calcular métricas principais
     total_orcado = calcular_total_orcado(items)
-    orcamento_maximo = config['orcamento_maximo']
+    orcamento_maximo = config.get('orcamento_maximo', 30000.0)
     reserva = calcular_reserva(orcamento_maximo, total_orcado)
     porcentagem_usada = calcular_porcentagem_usada(orcamento_maximo, total_orcado)
     
@@ -221,9 +224,13 @@ elif menu_option == "📋 Itens do Casamento":
             # Converter de volta para formato original
             edited_df.columns = ['id', 'item', 'servico', 'preco', 'status', 'comentarios']
             items_atualizados = edited_df.to_dict('records')
-            save_json("items.json", items_atualizados)
-            st.success("✅ Alterações salvas com sucesso!")
-            st.rerun()
+            
+            with st.spinner("⏳ Salvando no Supabase..."):
+                if update_all_items(items_atualizados):
+                    st.success("✅ Alterações salvas com sucesso no Supabase!")
+                    st.rerun()
+                else:
+                    st.error("❌ Erro ao salvar alterações. Tente novamente.")
     
     # Formulário para adicionar novo item
     st.markdown("### ➕ Adicionar Novo Item")
@@ -250,22 +257,12 @@ elif menu_option == "📋 Itens do Casamento":
         submitted = st.form_submit_button("Adicionar Item", type="primary")
         
         if submitted and novo_item:
-            # Gerar novo ID
-            novo_id = max([item['id'] for item in items], default=0) + 1
-            
-            novo_item_dict = {
-                "id": novo_id,
-                "item": novo_item,
-                "servico": novo_servico,
-                "preco": float(novo_preco),
-                "status": novo_status,
-                "comentarios": novos_comentarios
-            }
-            
-            items.append(novo_item_dict)
-            save_json("items.json", items)
-            st.success(f"✅ Item '{novo_item}' adicionado com sucesso!")
-            st.rerun()
+            with st.spinner("⏳ Adicionando ao Supabase..."):
+                if add_item(novo_item, novo_servico, float(novo_preco), novo_status, novos_comentarios):
+                    st.success(f"✅ Item '{novo_item}' adicionado com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("❌ Erro ao adicionar item. Tente novamente.")
     
     # Mostrar total
     total_atual = calcular_total_orcado(items_filtrados)
@@ -284,14 +281,14 @@ elif menu_option == "💰 Planejamento Financeiro":
         orcamento_maximo = st.number_input(
             "💵 Orçamento Máximo (R$)",
             min_value=0.0,
-            value=config['orcamento_maximo'],
+            value=config.get('orcamento_maximo', 30000.0),
             step=1000.0
         )
         
         taxa_juros = st.number_input(
             "📈 Taxa de Juros Mensal (%)",
             min_value=0.0,
-            value=config['taxa_juros'] * 100,
+            value=config.get('taxa_juros', 0.0035) * 100,
             step=0.01,
             format="%.2f"
         )
@@ -300,14 +297,14 @@ elif menu_option == "💰 Planejamento Financeiro":
         numero_meses = st.number_input(
             "📅 Número de Meses",
             min_value=1,
-            value=config['numero_meses'],
+            value=int(config.get('numero_meses', 12)),
             step=1
         )
         
         valor_inicial = st.number_input(
             "💰 Valor Inicial Disponível (R$)",
             min_value=0.0,
-            value=config['valor_inicial'],
+            value=config.get('valor_inicial', 30000.0),
             step=1000.0
         )
     
@@ -316,12 +313,16 @@ elif menu_option == "💰 Planejamento Financeiro":
         config_atualizada = {
             "orcamento_maximo": orcamento_maximo,
             "taxa_juros": taxa_juros / 100,
-            "numero_meses": int(numero_meses),
+            "numero_meses": float(numero_meses),
             "valor_inicial": valor_inicial
         }
-        save_json("config.json", config_atualizada)
-        st.success("✅ Configurações salvas com sucesso!")
-        st.rerun()
+        
+        with st.spinner("⏳ Salvando no Supabase..."):
+            if update_all_config(config_atualizada):
+                st.success("✅ Configurações salvas com sucesso no Supabase!")
+                st.rerun()
+            else:
+                st.error("❌ Erro ao salvar configurações. Tente novamente.")
     
     st.markdown("---")
     st.markdown("### 📊 Análise Financeira")
@@ -335,8 +336,8 @@ elif menu_option == "💰 Planejamento Financeiro":
     investimento_mensal = calcular_investimento_mensal(
         valor_inicial,
         orcamento_maximo,
-        config['taxa_juros'],
-        config['numero_meses']
+        config.get('taxa_juros', 0.0035),
+        int(config.get('numero_meses', 12))
     )
     
     # Métricas
@@ -390,11 +391,11 @@ elif menu_option == "💰 Planejamento Financeiro":
             valores_acumulados.append(valor_inicial)
         else:
             # Valor futuro com aportes mensais
-            fator = (1 + config['taxa_juros']) ** mes
+            fator = (1 + config.get('taxa_juros', 0.0035)) ** mes
             valor_futuro_inicial = valor_inicial * fator
             
             if investimento_mensal > 0:
-                valor_aportes = investimento_mensal * ((fator - 1) / config['taxa_juros'])
+                valor_aportes = investimento_mensal * ((fator - 1) / config.get('taxa_juros', 0.0035))
             else:
                 valor_aportes = 0
             
@@ -470,8 +471,6 @@ elif menu_option == "✅ Checklist":
         tasks_filtradas = tasks
     
     # Exibir tarefas com checkboxes
-    tasks_alteradas = False
-    
     for i, task in enumerate(tasks):
         # Verificar se a tarefa está no filtro
         if filtro_tarefa == "Pendentes" and task.get('concluida', False):
@@ -483,17 +482,21 @@ elif menu_option == "✅ Checklist":
         
         with col1:
             # Checkbox para marcar como concluída
-            concluida = st.checkbox(
+            concluida_atual = task.get('concluida', False)
+            concluida_nova = st.checkbox(
                 "✓",
-                value=task.get('concluida', False),
+                value=concluida_atual,
                 key=f"task_{task['id']}",
                 label_visibility="collapsed"
             )
             
             # Atualizar se mudou
-            if concluida != task.get('concluida', False):
-                task['concluida'] = concluida
-                tasks_alteradas = True
+            if concluida_nova != concluida_atual:
+                with st.spinner("⏳ Atualizando no Supabase..."):
+                    if update_task(task['id'], concluida_nova):
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao atualizar tarefa.")
         
         with col2:
             # Exibir tarefa
@@ -501,11 +504,6 @@ elif menu_option == "✅ Checklist":
                 st.markdown(f"~~{task['tarefa']}~~")
             else:
                 st.markdown(f"**{task['tarefa']}**")
-    
-    # Salvar se houve alterações
-    if tasks_alteradas:
-        save_json("tasks.json", tasks)
-        st.rerun()
     
     st.markdown("---")
     
@@ -517,16 +515,12 @@ elif menu_option == "✅ Checklist":
         submitted = st.form_submit_button("Adicionar Tarefa", type="primary")
         
         if submitted and nova_tarefa:
-            novo_id = max([t['id'] for t in tasks], default=0) + 1
-            nova_tarefa_dict = {
-                "id": novo_id,
-                "tarefa": nova_tarefa,
-                "concluida": False
-            }
-            tasks.append(nova_tarefa_dict)
-            save_json("tasks.json", tasks)
-            st.success(f"✅ Tarefa '{nova_tarefa}' adicionada!")
-            st.rerun()
+            with st.spinner("⏳ Adicionando ao Supabase..."):
+                if add_task(nova_tarefa, False):
+                    st.success(f"✅ Tarefa '{nova_tarefa}' adicionada!")
+                    st.rerun()
+                else:
+                    st.error("❌ Erro ao adicionar tarefa. Tente novamente.")
 
 
 # ==================== SEÇÃO: RELATÓRIOS ====================
@@ -535,7 +529,7 @@ elif menu_option == "📊 Relatórios":
     
     # Calcular métricas
     total_orcado = calcular_total_orcado(items)
-    orcamento_maximo = config['orcamento_maximo']
+    orcamento_maximo = config.get('orcamento_maximo', 30000.0)
     
     # Gráfico de barras - Gastos por item
     st.markdown("### 📊 Gastos por Item")

@@ -4,6 +4,8 @@
 
 Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planejamento do seu casamento. Organize seu orçamento, acompanhe itens contratados, gerencie tarefas e visualize relatórios detalhados - tudo em um só lugar!
 
+**⚠️ IMPORTANTE: Todos os dados são persistidos no Supabase (PostgreSQL na nuvem) para garantir segurança e disponibilidade permanente!**
+
 **Desenvolvido com amor para tornar seu grande dia ainda mais especial! 💕**
 
 ## ✨ Funcionalidades
@@ -21,6 +23,7 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 - Marcar itens como "Contratado" ou "Pendente"
 - Filtrar por status
 - Cálculo automático do total orçado
+- **Dados salvos permanentemente no Supabase**
 
 ### 💰 Planejamento Financeiro
 - Configurações personalizáveis:
@@ -34,13 +37,15 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
   - Investimento mensal recomendado
 - Gráfico de projeção de investimento ao longo do tempo
 - Alertas visuais de orçamento
+- **Configurações persistidas no Supabase**
 
 ### ✅ Checklist de Tarefas
-- Lista completa de tarefas típicas de casamento (20+ tarefas)
+- Lista completa de tarefas típicas de casamento (25+ tarefas)
 - Adicionar tarefas personalizadas
-- Marcar tarefas como concluídas
+- Marcar tarefas como concluídas em tempo real
 - Filtrar por status (Todas/Pendentes/Concluídas)
 - Barra de progresso mostrando % de conclusão
+- **Progresso salvo instantaneamente no Supabase**
 
 ### 📊 Relatórios
 - Gráfico de barras com gastos por item
@@ -53,6 +58,7 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 
 - Python 3.8 ou superior
 - pip (gerenciador de pacotes do Python)
+- Conta no Supabase (gratuita)
 
 ## 📥 Instalação
 
@@ -81,9 +87,74 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## ☁️ Configuração do Supabase
+
+### Passo 1: Criar Projeto no Supabase
+
+1. Acesse [supabase.com](https://supabase.com) e crie uma conta gratuita
+2. Clique em "New Project"
+3. Preencha os dados do projeto:
+   - Nome: `casamento-streamlit` (ou o nome que preferir)
+   - Database Password: Escolha uma senha segura
+   - Region: Escolha a região mais próxima
+4. Aguarde a criação do projeto (leva ~2 minutos)
+
+### Passo 2: Obter Credenciais
+
+1. No dashboard do projeto, vá em **Settings** → **API**
+2. Copie:
+   - **Project URL** (formato: `https://xxx.supabase.co`)
+   - **anon/public key** (token longo começando com `eyJ...`)
+
+### Passo 3: Configurar Secrets Localmente
+
+1. Crie o diretório `.streamlit` na raiz do projeto:
+```bash
+mkdir .streamlit
+```
+
+2. Crie o arquivo `.streamlit/secrets.toml`:
+```bash
+# Windows
+type nul > .streamlit\secrets.toml
+
+# Linux/Mac
+touch .streamlit/secrets.toml
+```
+
+3. Edite o arquivo `.streamlit/secrets.toml` e adicione suas credenciais:
+```toml
+[supabase]
+url = "SUA_PROJECT_URL_AQUI"
+key = "SUA_ANON_KEY_AQUI"
+```
+
+**⚠️ IMPORTANTE: Nunca commite este arquivo! Ele já está no .gitignore**
+
+### Passo 4: Criar Tabelas no Banco de Dados
+
+1. No dashboard do Supabase, vá em **SQL Editor**
+2. Clique em **New query**
+3. Copie todo o conteúdo do arquivo `database_setup.sql` deste repositório
+4. Cole no editor SQL do Supabase
+5. Clique em **Run** (ou pressione Ctrl+Enter)
+6. Aguarde a confirmação: "Success. No rows returned"
+
+Isso criará:
+- ✅ Tabela `items` (itens do casamento)
+- ✅ Tabela `config` (configurações financeiras)
+- ✅ Tabela `tasks` (checklist de tarefas)
+- ✅ Dados iniciais populados
+
+### Passo 5: Verificar Tabelas
+
+1. No dashboard do Supabase, vá em **Table Editor**
+2. Você deve ver as 3 tabelas: `items`, `config`, `tasks`
+3. Cada tabela deve ter dados iniciais
+
 ## 🚀 Como Usar
 
-### Executar a aplicação
+### Executar a aplicação localmente
 
 ```bash
 streamlit run app.py
@@ -105,59 +176,80 @@ Use o menu lateral (sidebar) para navegar entre as 5 seções principais:
 
 ```
 casamento_streamlit/
-├── app.py                    # Arquivo principal da aplicação
-├── requirements.txt          # Dependências do projeto
-├── README.md                # Este arquivo
-├── .gitignore               # Arquivos ignorados pelo Git
-├── utils/                   # Módulos utilitários
-│   ├── __init__.py
-│   ├── data_manager.py      # Gerenciamento de dados JSON
-│   └── calculations.py      # Funções de cálculo financeiro
-└── data/                    # Dados locais (criado automaticamente)
-    ├── items.json           # Itens do casamento
-    ├── config.json          # Configurações financeiras
-    └── tasks.json           # Tarefas/checklist
+├── app.py                       # Arquivo principal da aplicação
+├── requirements.txt             # Dependências do projeto
+├── README.md                    # Este arquivo
+├── .gitignore                   # Arquivos ignorados pelo Git
+├── database_setup.sql           # SQL para criar tabelas no Supabase
+├── create_tables.py             # Script auxiliar para gerar SQL
+├── init_database.py             # Script de inicialização (legacy)
+├── .streamlit/
+│   └── secrets.toml            # Credenciais Supabase (NÃO commitar!)
+└── utils/                       # Módulos utilitários
+    ├── __init__.py
+    ├── supabase_client.py      # Cliente e operações Supabase
+    ├── calculations.py         # Funções de cálculo financeiro
+    └── data_manager.py         # Gerenciamento de dados (legacy)
 ```
 
 ## 💾 Persistência de Dados
 
-Os dados são salvos automaticamente em arquivos JSON na pasta `data/`:
+### ☁️ Supabase (PostgreSQL na Nuvem)
 
-- **items.json**: Armazena todos os itens do casamento (preços, fornecedores, status)
-- **config.json**: Configurações financeiras (orçamento, taxa de juros, etc.)
-- **tasks.json**: Lista de tarefas e checklist
+Todos os dados são salvos automaticamente no Supabase:
 
-### Backup dos Dados
+- **items**: Todos os itens do casamento (preços, fornecedores, status)
+- **config**: Configurações financeiras (orçamento, taxa de juros, etc.)
+- **tasks**: Lista de tarefas e checklist
 
-Para fazer backup dos seus dados:
+### ✅ Vantagens do Supabase:
+- ✅ Dados persistem permanentemente na nuvem
+- ✅ Acesso de qualquer dispositivo
+- ✅ Backup automático
+- ✅ Sem perda de dados em reinicializações
+- ✅ Escalável e seguro
+- ✅ Gratuito até 500MB de dados
 
-1. Copie a pasta `data/` para um local seguro
-2. Ou baixe os arquivos CSV através da seção "📊 Relatórios"
+### 🔄 Como os Dados São Salvos:
 
-### Restaurar Dados
+1. **Adicionar Item**: INSERT instantâneo no Supabase
+2. **Editar Item**: UPDATE em tempo real
+3. **Marcar Tarefa**: Atualização automática no banco
+4. **Alterar Orçamento**: Salvo imediatamente no Supabase
 
-Para restaurar dados de um backup:
+## 🌐 Deploy no Streamlit Cloud
 
-1. Substitua os arquivos na pasta `data/` pelos arquivos do backup
-2. Reinicie a aplicação
+### Passo 1: Push para GitHub
 
-## 🎨 Personalização
+```bash
+git add .
+git commit -m "Setup completo com Supabase"
+git push origin main
+```
 
-### Modificar Dados Iniciais
+### Passo 2: Deploy no Streamlit Cloud
 
-Os dados iniciais são definidos em `utils/data_manager.py`:
+1. Acesse [share.streamlit.io](https://share.streamlit.io)
+2. Faça login com sua conta GitHub
+3. Clique em "New app"
+4. Selecione:
+   - Repository: `douglas-s29/casamento_streamlit`
+   - Branch: `main`
+   - Main file path: `app.py`
 
-- `get_default_items()` - Itens iniciais do casamento
-- `get_default_config()` - Configurações financeiras padrão
-- `get_default_tasks()` - Lista inicial de tarefas
+### Passo 3: Configurar Secrets na Cloud
 
-### Modificar Valores Padrão
+1. Na página de deploy, clique em "Advanced settings"
+2. Em "Secrets", cole:
+```toml
+[supabase]
+url = "SUA_PROJECT_URL_AQUI"
+key = "SUA_ANON_KEY_AQUI"
+```
+3. Clique em "Deploy!"
 
-No arquivo `utils/data_manager.py`, você pode alterar:
-
-- Orçamento máximo padrão: R$ 30.000,00
-- Taxa de juros: 0,35% ao mês
-- Número de meses: 12 meses
+Pronto! Seu app estará disponível em uma URL pública tipo:
+`https://seu-app.streamlit.app`
 
 ## 📊 Cálculos Financeiros
 
@@ -195,48 +287,86 @@ Porcentagem = (Total Orçado / Orçamento Máximo) × 100
 1. Vá para **📋 Itens do Casamento**
 2. Preencha o formulário "Adicionar Novo Item"
 3. Clique em "Adicionar Item"
-4. Os dados são salvos automaticamente
+4. Os dados são salvos **instantaneamente no Supabase**
 
 ### Cenário 2: Marcar uma tarefa como concluída
 
 1. Vá para **✅ Checklist**
 2. Clique no checkbox ao lado da tarefa
-3. A porcentagem de conclusão é atualizada automaticamente
+3. A atualização é salva **automaticamente no Supabase**
+4. A porcentagem de conclusão é atualizada em tempo real
 
 ### Cenário 3: Ajustar orçamento
 
 1. Vá para **💰 Planejamento Financeiro**
 2. Altere o valor do "Orçamento Máximo"
 3. Clique em "Salvar Configurações"
-4. Todos os cálculos são atualizados automaticamente
+4. Todos os cálculos são atualizados e **salvos no Supabase**
 
 ## ⚠️ Observações Importantes
 
 - Todos os valores monetários são formatados em Reais (R$)
 - A aplicação valida valores negativos automaticamente
 - Alertas são exibidos quando o orçamento ultrapassar 80%
-- Os dados são salvos localmente no seu computador
-- A pasta `data/` não é versionada no Git (incluída no .gitignore)
+- Os dados são salvos **permanentemente no Supabase**
+- Conexão com internet é necessária para acessar os dados
+- Credenciais do Supabase devem ser mantidas em segredo
 
 ## 🐛 Solução de Problemas
 
-### Erro ao executar a aplicação
+### Erro: "Erro ao conectar ao Supabase"
 
-Certifique-se de que:
-1. O Python 3.8+ está instalado
-2. Todas as dependências foram instaladas: `pip install -r requirements.txt`
-3. Você está no diretório correto do projeto
+**Causas possíveis:**
+1. Arquivo `.streamlit/secrets.toml` não existe ou está mal configurado
+2. Credenciais incorretas
+3. Sem conexão com internet
 
-### Dados não estão sendo salvos
+**Solução:**
+1. Verifique se o arquivo `.streamlit/secrets.toml` existe
+2. Confirme que as credenciais estão corretas (URL e key)
+3. Teste sua conexão com internet
 
-Verifique se:
-1. A pasta `data/` existe e tem permissões de escrita
-2. Não há erros no console ao salvar
+### Erro: "Tabela não existe"
 
-### Gráficos não aparecem
+**Causa:** As tabelas não foram criadas no Supabase
 
-1. Verifique se o Plotly está instalado: `pip install plotly`
-2. Tente atualizar a página (F5)
+**Solução:**
+1. Acesse o SQL Editor do Supabase
+2. Execute todo o conteúdo de `database_setup.sql`
+3. Verifique no Table Editor se as tabelas foram criadas
+
+### Dados não aparecem
+
+**Causa:** Tabelas vazias ou erro na query
+
+**Solução:**
+1. Verifique no Supabase Table Editor se há dados nas tabelas
+2. Execute novamente o SQL de inserção de dados iniciais
+3. Limpe o cache do Streamlit: `streamlit cache clear`
+
+### Aplicação muito lenta
+
+**Causa:** Muitas requisições ao Supabase
+
+**Solução:**
+- O app usa cache automático (`@st.cache_data`) com TTL de 10 segundos
+- Se necessário, aumente o TTL em `utils/supabase_client.py`
+
+## 🔒 Segurança
+
+### Boas Práticas Implementadas:
+
+- ✅ Credenciais em arquivo separado (`.streamlit/secrets.toml`)
+- ✅ Arquivo de secrets no `.gitignore`
+- ✅ Uso de variáveis de ambiente
+- ✅ Tratamento de erros em todas operações
+- ✅ Validação de dados antes de inserir
+- ✅ Uso da API key pública (anon) do Supabase
+
+### **NUNCA**:
+- ❌ Commitar o arquivo `secrets.toml`
+- ❌ Compartilhar suas credenciais
+- ❌ Usar a Service Role Key em produção
 
 ## 🤝 Contribuindo
 
@@ -262,4 +392,25 @@ Desenvolvido com 💕 para ajudar casais a organizarem o casamento dos seus sonh
 
 ## 📞 Suporte
 
-Se tiver dúvidas ou sugestões, abra uma [issue](https://github.com/douglas-s29/casamento_streamlit/issues) no GitHub.
+Se tiver dúvidas ou sugestões:
+- Abra uma [issue](https://github.com/douglas-s29/casamento_streamlit/issues) no GitHub
+- Consulte a [documentação do Supabase](https://supabase.com/docs)
+- Consulte a [documentação do Streamlit](https://docs.streamlit.io)
+
+## 🆕 Changelog
+
+### v2.0.0 - Migração para Supabase
+- ✅ Migração completa de JSON para Supabase
+- ✅ Persistência permanente na nuvem
+- ✅ CRUD completo para items, tasks e config
+- ✅ Cache otimizado para performance
+- ✅ Mensagens de feedback ao usuário
+- ✅ Tratamento de erros robusto
+
+### v1.0.0 - Versão Inicial
+- ✅ Sistema básico com arquivos JSON locais
+- ✅ Dashboard com métricas
+- ✅ Gerenciamento de itens
+- ✅ Planejamento financeiro
+- ✅ Checklist de tarefas
+- ✅ Relatórios e exports
