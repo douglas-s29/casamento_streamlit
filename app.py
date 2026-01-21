@@ -696,57 +696,59 @@ elif menu_option == "💸 Orçamentos":
     
     # Listar categorias
     categorias = get_all_categorias()
-    if categorias:
-        st.markdown("#### Categorias Cadastradas")
-        
-        # Cabeçalho
-        col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
-        with col1:
-            st.write("**ID**")
-        with col2:
-            st.write("**Nome**")
-        with col3:
-            st.write("**Ações**")
-        with col4:
-            st.write("")
-        
-        st.divider()
-        
-        for idx, row in enumerate(categorias):
-            col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
+    num_categorias = len(categorias) if categorias else 0
+    
+    with st.expander(f"📋 Ver Categorias Cadastradas ({num_categorias} {'item' if num_categorias == 1 else 'itens'})"):
+        if categorias:
+            # Cabeçalho da tabela
+            col_id, col_nome, col_edit, col_del = st.columns([1, 4, 1.5, 1.5])
+            with col_id:
+                st.write("**ID**")
+            with col_nome:
+                st.write("**Nome**")
+            with col_edit:
+                st.write("**Editar**")
+            with col_del:
+                st.write("**Deletar**")
             
-            with col1:
-                st.write(row['id'])
-            with col2:
-                st.write(row['nome'])
-            with col3:
-                if st.button(f"✏️ Editar", key=f"edit_cat_{row['id']}"):
-                    st.session_state[f'editing_cat_{row["id"]}'] = True
-            with col4:
-                if st.button(f"🗑️ Deletar", key=f"del_cat_{row['id']}"):
-                    with st.spinner("⏳ Deletando..."):
-                        if delete_categoria(row['id']):
-                            st.success("Categoria deletada!")
-                            st.rerun()
+            st.divider()
             
-            # Formulário de edição (se ativado)
-            if st.session_state.get(f'editing_cat_{row["id"]}'):
-                with st.form(f"form_edit_cat_{row['id']}"):
-                    novo_nome = st.text_input("Novo nome", value=row['nome'])
-                    col_save, col_cancel = st.columns(2)
-                    with col_save:
-                        if st.form_submit_button("Salvar"):
-                            with st.spinner("⏳ Salvando..."):
-                                if update_categoria(row['id'], novo_nome):
-                                    st.session_state[f'editing_cat_{row["id"]}'] = False
-                                    st.success("Categoria atualizada!")
-                                    st.rerun()
-                    with col_cancel:
-                        if st.form_submit_button("Cancelar"):
-                            st.session_state[f'editing_cat_{row["id"]}'] = False
-                            st.rerun()
-    else:
-        st.info("Nenhuma categoria cadastrada. Adicione a primeira categoria acima!")
+            # Loop exibindo categorias
+            for cat in categorias:
+                col_id, col_nome, col_edit, col_del = st.columns([1, 4, 1.5, 1.5])
+                
+                with col_id:
+                    st.write(cat['id'])
+                with col_nome:
+                    st.write(cat['nome'])
+                with col_edit:
+                    if st.button(f"✏️ Editar", key=f"edit_cat_{cat['id']}"):
+                        st.session_state[f'editing_cat_{cat["id"]}'] = True
+                with col_del:
+                    if st.button(f"🗑️ Deletar", key=f"del_cat_{cat['id']}"):
+                        with st.spinner("⏳ Deletando..."):
+                            if delete_categoria(cat['id']):
+                                st.success("✅ Categoria deletada!")
+                                st.rerun()
+                
+                # Formulário de edição (se ativado)
+                if st.session_state.get(f'editing_cat_{cat["id"]}'):
+                    with st.form(f"form_edit_cat_{cat['id']}"):
+                        novo_nome = st.text_input("Novo nome", value=cat['nome'])
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.form_submit_button("✅ Salvar"):
+                                with st.spinner("⏳ Salvando..."):
+                                    if update_categoria(cat['id'], novo_nome):
+                                        st.session_state[f'editing_cat_{cat["id"]}'] = False
+                                        st.success("✅ Categoria atualizada!")
+                                        st.rerun()
+                        with col_cancel:
+                            if st.form_submit_button("❌ Cancelar"):
+                                st.session_state[f'editing_cat_{cat["id"]}'] = False
+                                st.rerun()
+        else:
+            st.info("ℹ️ Nenhuma categoria cadastrada ainda. Adicione uma categoria acima!")
     
     st.divider()
     
