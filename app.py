@@ -231,81 +231,6 @@ st.sidebar.info("💡 Mantenha seu orçamento atualizado regularmente!")
 
 
 # ==================== HELPER FUNCTIONS ====================
-def render_orcamento_card(orc, categorias):
-    """Renderiza orçamento como card mobile-friendly"""
-    categoria_nome = orc['categorias']['nome']
-    
-    # Card HTML
-    st.markdown(f"""
-    <div class="mobile-card">
-        <div class="mobile-card-title">
-            {categoria_nome}
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Fornecedor</span>
-            <span class="mobile-card-value">{orc['fornecedor']}</span>
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Valor</span>
-            <span class="mobile-card-value">R$ {float(orc['valor']):,.2f}</span>
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Telefone</span>
-            <span class="mobile-card-value">{orc.get('telefone', '-')}</span>
-        </div>
-        <div class="mobile-card-row">
-            <span class="mobile-card-label">Observação</span>
-            <span class="mobile-card-value">{orc.get('observacao', '-')}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Botões de ação (full-width em mobile)
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("✏️ Editar", key=f"edit_orc_{orc['id']}", use_container_width=True):
-            st.session_state[f'editing_orc_{orc["id"]}'] = True
-    with col2:
-        if st.button("🗑️ Deletar", key=f"del_orc_{orc['id']}", use_container_width=True):
-            with st.spinner("⏳ Deletando..."):
-                if delete_orcamento(orc['id']):
-                    st.success("✅ Orçamento deletado!")
-                    st.rerun()
-    
-    # Formulário de edição
-    if st.session_state.get(f'editing_orc_{orc["id"]}'):
-        with st.form(f"form_edit_orc_{orc['id']}"):
-            st.write("**✏️ Editar Orçamento**")
-            cat_edit = st.selectbox("Categoria", [cat['nome'] for cat in categorias], 
-                                   index=[cat['nome'] for cat in categorias].index(categoria_nome),
-                                   key=f"cat_edit_{orc['id']}")
-            forn_edit = st.text_input("Fornecedor", value=orc['fornecedor'], key=f"forn_edit_{orc['id']}")
-            val_edit = st.number_input("Valor (R$)", value=float(orc['valor']), step=0.01, format="%.2f", key=f"val_edit_{orc['id']}")
-            tel_edit = st.text_input("Telefone", value=orc.get('telefone', ''), key=f"tel_edit_{orc['id']}")
-            obs_edit = st.text_area("Observação", value=orc.get('observacao', ''), key=f"obs_edit_{orc['id']}")
-            
-            col_save, col_cancel = st.columns(2)
-            with col_save:
-                if st.form_submit_button("✅ Salvar", use_container_width=True):
-                    with st.spinner("⏳ Salvando..."):
-                        cat_id = next(c['id'] for c in categorias if c['nome'] == cat_edit)
-                        data = {
-                            "categoria_id": cat_id,
-                            "fornecedor": forn_edit,
-                            "valor": val_edit,
-                            "telefone": tel_edit,
-                            "observacao": obs_edit
-                        }
-                        if update_orcamento(orc['id'], data):
-                            st.session_state[f'editing_orc_{orc["id"]}'] = False
-                            st.success("✅ Orçamento atualizado!")
-                            st.rerun()
-            with col_cancel:
-                if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                    st.session_state[f'editing_orc_{orc["id"]}'] = False
-                    st.rerun()
-
-
 # ==================== SEÇÃO: DASHBOARD ====================
 if menu_option == "🏠 Dashboard":
     st.header("🏠 Dashboard - Visão Geral")
@@ -683,55 +608,65 @@ elif menu_option == "💰 Planejamento Financeiro":
 
 # ==================== SEÇÃO: CHECKLIST ====================
 elif menu_option == "✅ Checklist":
-    st.header("✅ Checklist de Tarefas")
+    st.title("✅ Checklist de Tarefas")
+    st.write("Organize e acompanhe todas as tarefas do seu casamento")
     
     # Adicionar nova tarefa
     with st.expander("➕ Adicionar Nova Tarefa"):
         with st.form("form_add_task"):
             nova_tarefa = st.text_input("Descrição da tarefa", placeholder="Ex: Escolher vestido de noiva")
             submitted = st.form_submit_button("➕ Adicionar Tarefa", use_container_width=True, type="primary")
-            if submitted and nova_tarefa:
-                with st.spinner("⏳ Adicionando ao Supabase..."):
-                    result = add_task(nova_tarefa, False)
-                    if result:
-                        st.success("✅ Tarefa adicionada!")
-                        st.rerun()
-            elif submitted:
-                st.error("❌ Digite uma descrição para a tarefa!")
+            if submitted:
+                if nova_tarefa:
+                    with st.spinner("⏳ Adicionando ao Supabase..."):
+                        result = add_task(nova_tarefa, False)
+                        if result:
+                            st.success("✅ Tarefa adicionada!")
+                            st.rerun()
+                else:
+                    st.error("❌ Digite uma descrição para a tarefa!")
     
-    # Calcular progresso
-    total_tarefas = len(tasks)
-    tarefas_concluidas = sum(1 for t in tasks if t.get('concluida', False))
-    porcentagem = calcular_porcentagem_tarefas(tasks)
-    
-    # Métricas
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("📝 Total de Tarefas", total_tarefas)
-    
-    with col2:
-        st.metric("✅ Concluídas", tarefas_concluidas)
-    
-    with col3:
-        st.metric("⏳ Pendentes", total_tarefas - tarefas_concluidas)
-    
-    # Barra de progresso
-    st.markdown(f"### 📊 Progresso Geral - {porcentagem:.0f}% Concluído")
-    st.progress(porcentagem / 100)
-    
-    st.markdown("---")
-    
-    # Filtro
-    filtro_tarefa = st.selectbox(
-        "Filtrar tarefas:",
-        ["Todas", "Pendentes", "Concluídas"]
-    )
-    
-    # Lista de tarefas
-    st.markdown("### 📋 Lista de Tarefas")
-    
+    # Listar tarefas
     if tasks:
+        # Calcular progresso
+        concluidas = sum(1 for t in tasks if t.get('concluida', False))
+        total = len(tasks)
+        porcentagem = (concluidas / total * 100) if total > 0 else 0
+        
+        # Métrica de progresso
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.metric(
+                label="📊 Progresso Geral",
+                value=f"{porcentagem:.0f}%",
+                delta=f"{concluidas}/{total} tarefas concluídas"
+            )
+        with col2:
+            st.metric(
+                label="🎯 Faltam",
+                value=f"{total - concluidas}",
+                delta=f"tarefas"
+            )
+        
+        st.progress(porcentagem / 100)
+        
+        st.divider()
+        
+        # Inicializar seleção no session_state
+        if 'selected_task_id' not in st.session_state:
+            st.session_state.selected_task_id = None
+        if 'editing_task_mode' not in st.session_state:
+            st.session_state.editing_task_mode = False
+        
+        # Filtro
+        filtro_tarefa = st.selectbox(
+            "Filtrar tarefas:",
+            ["Todas", "Pendentes", "Concluídas"]
+        )
+        
+        st.markdown("### 📋 Lista de Tarefas")
+        
+        # Listar tarefas (sem botões ao lado)
         for task in tasks:
             # Aplicar filtro
             if filtro_tarefa == "Pendentes" and task.get('concluida', False):
@@ -739,53 +674,102 @@ elif menu_option == "✅ Checklist":
             if filtro_tarefa == "Concluídas" and not task.get('concluida', False):
                 continue
             
-            col1, col2, col3, col4 = st.columns([1, 5, 1, 1])
+            # Destacar tarefa selecionada
+            is_selected = st.session_state.selected_task_id == task['id']
+            
+            col1, col2 = st.columns([0.5, 9.5])
             
             with col1:
                 # Checkbox para marcar como concluída
-                checked = st.checkbox("", value=task.get('concluida', False), 
-                                    key=f"check_{task['id']}", 
-                                    label_visibility="collapsed")
+                checked = st.checkbox(
+                    "",
+                    value=task.get('concluida', False),
+                    key=f"check_{task['id']}",
+                    label_visibility="collapsed"
+                )
                 if checked != task.get('concluida', False):
                     with st.spinner("⏳ Atualizando..."):
                         if update_task(task['id'], {"concluida": checked}):
                             st.rerun()
             
             with col2:
-                if task.get('concluida', False):
-                    st.write(f"~~{task['tarefa']}~~")  # Texto riscado
+                # Texto da tarefa (clicável para selecionar)
+                if is_selected:
+                    # Destacar com background (usando markdown)
+                    if task.get('concluida', False):
+                        st.markdown(f"### 🔵 ~~{task['tarefa']}~~")
+                    else:
+                        st.markdown(f"### 🔵 {task['tarefa']}")
                 else:
-                    st.write(task['tarefa'])
-            
-            with col3:
-                if st.button("✏️", key=f"edit_task_{task['id']}", use_container_width=True):
-                    st.session_state[f'editing_task_{task["id"]}'] = True
-            
-            with col4:
-                if st.button("🗑️", key=f"del_task_{task['id']}", use_container_width=True):
-                    with st.spinner("⏳ Deletando..."):
-                        if delete_task(task['id']):
-                            st.success("Tarefa deletada!")
+                    # Botão invisível para seleção
+                    if task.get('concluida', False):
+                        if st.button(f"~~{task['tarefa']}~~", key=f"select_{task['id']}", use_container_width=True):
+                            st.session_state.selected_task_id = task['id']
+                            st.session_state.editing_task_mode = False
                             st.rerun()
+                    else:
+                        if st.button(task['tarefa'], key=f"select_{task['id']}", use_container_width=True):
+                            st.session_state.selected_task_id = task['id']
+                            st.session_state.editing_task_mode = False
+                            st.rerun()
+        
+        # Área de ação para tarefa selecionada
+        if st.session_state.selected_task_id is not None:
+            st.divider()
             
-            # Formulário de edição
-            if st.session_state.get(f'editing_task_{task["id"]}'):
-                with st.form(f"form_edit_task_{task['id']}"):
-                    novo_texto = st.text_input("Editar tarefa", value=task['tarefa'])
-                    col_save, col_cancel = st.columns(2)
-                    with col_save:
-                        if st.form_submit_button("✅ Salvar", use_container_width=True):
-                            with st.spinner("⏳ Salvando..."):
-                                if update_task(task['id'], {"tarefa": novo_texto}):
-                                    st.session_state[f'editing_task_{task["id"]}'] = False
-                                    st.success("Tarefa atualizada!")
+            selected_task = next((t for t in tasks if t['id'] == st.session_state.selected_task_id), None)
+            
+            if selected_task:
+                if not st.session_state.editing_task_mode:
+                    # Mostrar tarefa selecionada com botões de ação
+                    st.info(f"📌 **Tarefa selecionada:** {selected_task['tarefa']}")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        if st.button("✏️ Editar Tarefa", use_container_width=True, type="primary"):
+                            st.session_state.editing_task_mode = True
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("🗑️ Deletar Tarefa", use_container_width=True):
+                            with st.spinner("⏳ Deletando..."):
+                                if delete_task(selected_task['id']):
+                                    st.session_state.selected_task_id = None
+                                    st.session_state.editing_task_mode = False
+                                    st.success("✅ Tarefa deletada!")
                                     st.rerun()
-                    with col_cancel:
-                        if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                            st.session_state[f'editing_task_{task["id"]}'] = False
+                    
+                    with col3:
+                        if st.button("❌ Cancelar Seleção", use_container_width=True):
+                            st.session_state.selected_task_id = None
+                            st.session_state.editing_task_mode = False
                             st.rerun()
+                
+                else:
+                    # Modo de edição
+                    st.warning(f"✏️ **Editando tarefa:** {selected_task['tarefa']}")
+                    
+                    with st.form("form_edit_selected_task"):
+                        novo_texto = st.text_input("Novo nome da tarefa:", value=selected_task['tarefa'])
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.form_submit_button("✅ Salvar Alteração", use_container_width=True, type="primary"):
+                                if novo_texto:
+                                    with st.spinner("⏳ Salvando..."):
+                                        if update_task(selected_task['id'], {"tarefa": novo_texto}):
+                                            st.session_state.editing_task_mode = False
+                                            st.success("✅ Tarefa atualizada!")
+                                            st.rerun()
+                                else:
+                                    st.error("❌ O nome da tarefa não pode estar vazio!")
+                        with col2:
+                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                                st.session_state.editing_task_mode = False
+                                st.rerun()
     else:
-        st.info("Nenhuma tarefa cadastrada. Adicione a primeira tarefa acima!")
+        st.info("📝 Nenhuma tarefa cadastrada ainda. Adicione tarefas acima para começar!")
 
 
 # ==================== SEÇÃO: RELATÓRIOS ====================
@@ -1036,7 +1020,7 @@ elif menu_option == "💸 Orçamentos":
                 elif submitted:
                     st.error("❌ Preencha os campos obrigatórios (*)")
     
-    # Listar orçamentos como CARDS
+    # Listar orçamentos como TABELA (igual Itens do Casamento)
     orcamentos = get_all_orcamentos()
     if orcamentos:
         # Filtrar se necessário
@@ -1044,11 +1028,88 @@ elif menu_option == "💸 Orçamentos":
         if filtro_cat != "Todas":
             orcamentos_filtrados = [o for o in orcamentos if o['categorias']['nome'] == filtro_cat]
         
-        # Exibir cards
         if orcamentos_filtrados:
             st.write(f"**{len(orcamentos_filtrados)} orçamento(s) encontrado(s)**")
+            
+            # Cabeçalho da tabela
+            col_cat, col_forn, col_val, col_tel, col_obs, col_acoes = st.columns([2, 2, 1.5, 2, 2.5, 1.5])
+            with col_cat:
+                st.write("**Categoria**")
+            with col_forn:
+                st.write("**Fornecedor**")
+            with col_val:
+                st.write("**Valor**")
+            with col_tel:
+                st.write("**Telefone**")
+            with col_obs:
+                st.write("**Observação**")
+            with col_acoes:
+                st.write("**Ações**")
+            
+            st.divider()
+            
+            # Listar orçamentos linha por linha
             for orc in orcamentos_filtrados:
-                render_orcamento_card(orc, categorias)
+                col_cat, col_forn, col_val, col_tel, col_obs, col_edit, col_del = st.columns([2, 2, 1.5, 2, 2.5, 0.75, 0.75])
+                
+                with col_cat:
+                    st.write(orc['categorias']['nome'])
+                with col_forn:
+                    st.write(orc['fornecedor'])
+                with col_val:
+                    st.write(f"R$ {float(orc['valor']):,.2f}")
+                with col_tel:
+                    st.write(orc.get('telefone', '-'))
+                with col_obs:
+                    st.write(orc.get('observacao', '-'))
+                with col_edit:
+                    if st.button("✏️", key=f"edit_orc_{orc['id']}", use_container_width=True):
+                        st.session_state[f'editing_orc_{orc["id"]}'] = True
+                with col_del:
+                    if st.button("🗑️", key=f"del_orc_{orc['id']}", use_container_width=True):
+                        with st.spinner("⏳ Deletando..."):
+                            if delete_orcamento(orc['id']):
+                                st.success("✅ Orçamento deletado!")
+                                st.rerun()
+                
+                # Formulário de edição inline
+                if st.session_state.get(f'editing_orc_{orc["id"]}'):
+                    with st.form(f"form_edit_orc_{orc['id']}"):
+                        st.write("**✏️ Editar Orçamento**")
+                        
+                        cat_edit = st.selectbox("Categoria", [cat['nome'] for cat in categorias], 
+                                               index=[cat['nome'] for cat in categorias].index(orc['categorias']['nome']),
+                                               key=f"cat_edit_{orc['id']}")
+                        forn_edit = st.text_input("Fornecedor", value=orc['fornecedor'], key=f"forn_edit_{orc['id']}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            val_edit = st.number_input("Valor (R$)", value=float(orc['valor']), step=0.01, format="%.2f", key=f"val_edit_{orc['id']}")
+                        with col2:
+                            tel_edit = st.text_input("Telefone", value=orc.get('telefone', ''), key=f"tel_edit_{orc['id']}")
+                        
+                        obs_edit = st.text_area("Observação", value=orc.get('observacao', ''), key=f"obs_edit_{orc['id']}")
+                        
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.form_submit_button("✅ Salvar", use_container_width=True):
+                                with st.spinner("⏳ Salvando..."):
+                                    cat_id = next(c['id'] for c in categorias if c['nome'] == cat_edit)
+                                    data = {
+                                        "categoria_id": cat_id,
+                                        "fornecedor": forn_edit,
+                                        "valor": val_edit,
+                                        "telefone": tel_edit,
+                                        "observacao": obs_edit
+                                    }
+                                    if update_orcamento(orc['id'], data):
+                                        st.session_state[f'editing_orc_{orc["id"]}'] = False
+                                        st.success("✅ Orçamento atualizado!")
+                                        st.rerun()
+                        with col_cancel:
+                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                                st.session_state[f'editing_orc_{orc["id"]}'] = False
+                                st.rerun()
         else:
             st.info(f"Nenhum orçamento encontrado para a categoria '{filtro_cat}'.")
         
@@ -1067,7 +1128,7 @@ elif menu_option == "💸 Orçamentos":
                 st.write(f"**{cat}:** R$ {total:,.2f}")
             
             st.write("─" * 40)
-            st.write(f"**TOTAL GERAL:** R$ {sum(totais.values()):,.2f}")
+            st.write(f"### 💰 TOTAL GERAL: R$ {sum(totais.values()):,.2f}")
     else:
         st.info("Nenhum orçamento cadastrado. Adicione o primeiro orçamento acima!")
 
