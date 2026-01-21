@@ -106,12 +106,6 @@ if menu_option == "🏠 Dashboard":
             f"{porcentagem_tarefas:.0f}%"
         )
     
-    # Alertas
-    if porcentagem_usada >= 90:
-        st.error("🚨 Atenção! Você está usando mais de 90% do orçamento!")
-    elif porcentagem_usada >= 80:
-        st.warning("⚠️ Cuidado! Você já utilizou mais de 80% do orçamento!")
-    
     # Barra de progresso do orçamento com porcentagem visível
     st.markdown(f"### 📈 Progresso do Orçamento - {porcentagem_usada:.1f}% Utilizado")
     st.progress(min(porcentagem_usada / 100, 1.0))
