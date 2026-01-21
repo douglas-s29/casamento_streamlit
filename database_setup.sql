@@ -199,3 +199,40 @@ WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tarefa = 'Organizar transporte');
 INSERT INTO tasks (tarefa, concluida) 
 SELECT 'Preparar cronograma do dia', false
 WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE tarefa = 'Preparar cronograma do dia');
+
+-- Tabela de categorias
+CREATE TABLE IF NOT EXISTS categorias (
+  id SERIAL PRIMARY KEY,
+  nome TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabela de orçamentos
+CREATE TABLE IF NOT EXISTS orcamentos (
+  id SERIAL PRIMARY KEY,
+  categoria_id INTEGER REFERENCES categorias(id) ON DELETE CASCADE,
+  fornecedor TEXT NOT NULL,
+  valor DECIMAL(10,2) NOT NULL,
+  telefone TEXT,
+  observacao TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Dados iniciais de categorias
+INSERT INTO categorias (nome) VALUES
+('Buffet'),
+('Igreja'),
+('Chácara'),
+('Decoração'),
+('Fotografia'),
+('DJ/Música'),
+('Vestido de Noiva'),
+('Roupa do Noivo'),
+('Doces e Bolos'),
+('Cabelo e Maquiagem'),
+('Convites'),
+('Lembrancinhas'),
+('Transporte'),
+('Lua de Mel'),
+('Documentação')
+ON CONFLICT (nome) DO NOTHING;
