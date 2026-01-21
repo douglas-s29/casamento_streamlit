@@ -904,235 +904,279 @@ Progresso: {calcular_porcentagem_tarefas(tasks):.1f}%
 
 # ==================== SEÇÃO: ORÇAMENTOS ====================
 elif menu_option == "💸 Orçamentos":
-    st.title("💸 Orçamentos")
-    st.write("Gerencie orçamentos recebidos organizados por categoria")
+    st.header("💸 Orçamentos")
     
-    # ====== SEÇÃO 1: GERENCIAR CATEGORIAS ======
-    st.subheader("📁 Gerenciar Categorias")
-    
-    # Botão adicionar categoria
-    with st.expander("➕ Adicionar Nova Categoria"):
-        with st.form("form_add_categoria"):
-            nova_categoria = st.text_input("Nome da Categoria", placeholder="Ex: Buffet, Decoração, Música")
-            submitted = st.form_submit_button("➕ Adicionar Categoria", use_container_width=True, type="primary")
-            if submitted and nova_categoria:
-                with st.spinner("⏳ Adicionando..."):
-                    result = add_categoria(nova_categoria)
-                    if result:
-                        st.success(f"✅ Categoria '{nova_categoria}' adicionada!")
-                        st.rerun()
-            elif submitted:
-                st.error("❌ Preencha o nome da categoria!")
-    
-    # Listar categorias
+    # Carregar dados
     categorias = get_all_categorias()
-    num_categorias = len(categorias) if categorias else 0
+    orcamentos = get_all_orcamentos()
     
-    with st.expander(f"📋 Ver Categorias Cadastradas ({num_categorias} {'item' if num_categorias == 1 else 'itens'})"):
+    # ===== SEÇÃO 1: GERENCIAR CATEGORIAS (colapsável) =====
+    with st.expander("📁 Gerenciar Categorias"):
+        st.write("**Categorias de serviços disponíveis**")
+        
+        # Adicionar categoria
+        with st.form("form_add_categoria_inline"):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                nova_categoria = st.text_input("Nova categoria", placeholder="Ex: Flores")
+            with col2:
+                submitted_cat = st.form_submit_button("➕ Adicionar", use_container_width=True)
+            
+            if submitted_cat and nova_categoria:
+                result = add_categoria(nova_categoria)
+                if result:
+                    st.success(f"✅ Categoria '{nova_categoria}' adicionada!")
+                    st.rerun()
+        
+        # Listar categorias
         if categorias:
-            # Cabeçalho da tabela
-            col_id, col_nome, col_edit, col_del = st.columns([1, 4, 1.5, 1.5])
-            with col_id:
-                st.write("**ID**")
-            with col_nome:
-                st.write("**Nome**")
-            with col_edit:
-                st.write("**Editar**")
-            with col_del:
-                st.write("**Deletar**")
-            
             st.divider()
+            df_cat = pd.DataFrame(categorias)
             
-            # Loop exibindo categorias
-            for cat in categorias:
-                col_id, col_nome, col_edit, col_del = st.columns([1, 4, 1.5, 1.5])
-                
-                with col_id:
-                    st.write(cat['id'])
-                with col_nome:
-                    st.write(cat['nome'])
-                with col_edit:
-                    if st.button(f"✏️ Editar", key=f"edit_cat_{cat['id']}", use_container_width=True):
-                        st.session_state[f'editing_cat_{cat["id"]}'] = True
-                with col_del:
-                    if st.button(f"🗑️ Deletar", key=f"del_cat_{cat['id']}", use_container_width=True):
-                        with st.spinner("⏳ Deletando..."):
-                            if delete_categoria(cat['id']):
-                                st.success("✅ Categoria deletada!")
-                                st.rerun()
-                
-                # Formulário de edição (se ativado)
-                if st.session_state.get(f'editing_cat_{cat["id"]}'):
-                    with st.form(f"form_edit_cat_{cat['id']}"):
-                        novo_nome = st.text_input("Novo nome", value=cat['nome'])
-                        col_save, col_cancel = st.columns(2)
-                        with col_save:
-                            if st.form_submit_button("✅ Salvar", use_container_width=True):
-                                with st.spinner("⏳ Salvando..."):
-                                    if update_categoria(cat['id'], novo_nome):
-                                        st.session_state[f'editing_cat_{cat["id"]}'] = False
-                                        st.success("✅ Categoria atualizada!")
-                                        st.rerun()
-                        with col_cancel:
-                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                                st.session_state[f'editing_cat_{cat["id"]}'] = False
-                                st.rerun()
-        else:
-            st.info("ℹ️ Nenhuma categoria cadastrada ainda. Adicione uma categoria acima!")
+            # Remover created_at
+            if 'created_at' in df_cat.columns:
+                df_cat = df_cat.drop('created_at', axis=1)
+            
+            df_cat.columns = ['ID', 'Nome']
+            
+            st.dataframe(df_cat, use_container_width=True, hide_index=True)
     
     st.divider()
     
-    # ====== SEÇÃO 2: ORÇAMENTOS ======
-    st.subheader("💰 Orçamentos Recebidos")
+    # ===== SEÇÃO 2: ORÇAMENTOS RECEBIDOS =====
     
     # Filtro por categoria
-    if categorias:
+    col1, col2 = st.columns([3, 1])
+    with col1:
         cat_options = ["Todas"] + [cat['nome'] for cat in categorias]
         filtro_cat = st.selectbox("Filtrar por categoria:", cat_options)
-    else:
-        st.warning("⚠️ Cadastre categorias primeiro para adicionar orçamentos.")
-        filtro_cat = "Todas"
     
-    # Botão adicionar orçamento
-    if categorias:
-        with st.expander("➕ Adicionar Novo Orçamento"):
-            with st.form("form_add_orcamento"):
-                cat_selecionada = st.selectbox("Categoria *", [cat['nome'] for cat in categorias])
-                fornecedor = st.text_input("Fornecedor *", placeholder="Nome do fornecedor")
-                
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    valor = st.number_input("Valor (R$) *", min_value=0.0, step=0.01, format="%.2f")
-                with col2:
-                    telefone = st.text_input("Telefone", placeholder="(11) 98765-4321")
-                
-                observacao = st.text_area("Observação", placeholder="Detalhes adicionais...", height=100)
-                
-                submitted = st.form_submit_button("➕ Adicionar Orçamento", use_container_width=True, type="primary")
-                
-                if submitted and cat_selecionada and fornecedor:
-                    with st.spinner("⏳ Adicionando..."):
-                        cat_id = next(c['id'] for c in categorias if c['nome'] == cat_selecionada)
-                        result = add_orcamento(cat_id, fornecedor, valor, telefone, observacao)
-                        if result:
-                            st.success("✅ Orçamento adicionado!")
-                            st.rerun()
-                elif submitted:
-                    st.error("❌ Preencha os campos obrigatórios (*)")
-    
-    # Listar orçamentos como TABELA (igual Itens do Casamento)
-    orcamentos = get_all_orcamentos()
-    if orcamentos:
-        # Filtrar se necessário
+    # Aplicar filtro
+    if filtro_cat == "Todas":
         orcamentos_filtrados = orcamentos
-        if filtro_cat != "Todas":
-            orcamentos_filtrados = [o for o in orcamentos if o['categorias']['nome'] == filtro_cat]
+    else:
+        orcamentos_filtrados = [
+            orc for orc in orcamentos 
+            if orc.get('categorias', {}).get('nome') == filtro_cat
+        ]
+    
+    # Converter para DataFrame
+    if orcamentos_filtrados:
+        # Preparar dados para exibição
+        orcamentos_display = []
+        for orc in orcamentos_filtrados:
+            orcamentos_display.append({
+                'id': orc['id'],
+                'categoria': orc['categorias']['nome'],
+                'categoria_id': orc['categoria_id'],
+                'fornecedor': orc['fornecedor'],
+                'valor': float(orc['valor']),
+                'telefone': orc.get('telefone', ''),
+                'observacao': orc.get('observacao', '')
+            })
         
-        if orcamentos_filtrados:
-            st.write(f"**{len(orcamentos_filtrados)} orçamento(s) encontrado(s)**")
-            
-            # Cabeçalho da tabela
-            col_cat, col_forn, col_val, col_tel, col_obs, col_edit, col_del = st.columns([2, 2, 1.5, 2, 2.5, 0.75, 0.75])
-            with col_cat:
-                st.write("**Categoria**")
-            with col_forn:
-                st.write("**Fornecedor**")
-            with col_val:
-                st.write("**Valor**")
-            with col_tel:
-                st.write("**Telefone**")
-            with col_obs:
-                st.write("**Observação**")
-            with col_edit:
-                st.write("**Ações**")
-            with col_del:
-                st.write("")
-            
-            st.divider()
-            
-            # Listar orçamentos linha por linha
-            for orc in orcamentos_filtrados:
-                col_cat, col_forn, col_val, col_tel, col_obs, col_edit, col_del = st.columns([2, 2, 1.5, 2, 2.5, 0.75, 0.75])
-                
-                with col_cat:
-                    st.write(orc['categorias']['nome'])
-                with col_forn:
-                    st.write(orc['fornecedor'])
-                with col_val:
-                    st.write(f"R$ {float(orc['valor']):,.2f}")
-                with col_tel:
-                    st.write(orc.get('telefone', '-'))
-                with col_obs:
-                    st.write(orc.get('observacao', '-'))
-                with col_edit:
-                    if st.button("✏️", key=f"edit_orc_{orc['id']}", use_container_width=True):
-                        st.session_state[f'editing_orc_{orc["id"]}'] = True
-                with col_del:
-                    if st.button("🗑️", key=f"del_orc_{orc['id']}", use_container_width=True):
-                        with st.spinner("⏳ Deletando..."):
-                            if delete_orcamento(orc['id']):
-                                st.success("✅ Orçamento deletado!")
-                                st.rerun()
-                
-                # Formulário de edição inline
-                if st.session_state.get(f'editing_orc_{orc["id"]}'):
-                    with st.form(f"form_edit_orc_{orc['id']}"):
-                        st.write("**✏️ Editar Orçamento**")
-                        
-                        cat_edit = st.selectbox("Categoria", [cat['nome'] for cat in categorias], 
-                                               index=[cat['nome'] for cat in categorias].index(orc['categorias']['nome']),
-                                               key=f"cat_edit_{orc['id']}")
-                        forn_edit = st.text_input("Fornecedor", value=orc['fornecedor'], key=f"forn_edit_{orc['id']}")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            val_edit = st.number_input("Valor (R$)", value=float(orc['valor']), step=0.01, format="%.2f", key=f"val_edit_{orc['id']}")
-                        with col2:
-                            tel_edit = st.text_input("Telefone", value=orc.get('telefone', ''), key=f"tel_edit_{orc['id']}")
-                        
-                        obs_edit = st.text_area("Observação", value=orc.get('observacao', ''), key=f"obs_edit_{orc['id']}")
-                        
-                        col_save, col_cancel = st.columns(2)
-                        with col_save:
-                            if st.form_submit_button("✅ Salvar", use_container_width=True):
-                                with st.spinner("⏳ Salvando..."):
-                                    cat_id = next(c['id'] for c in categorias if c['nome'] == cat_edit)
-                                    data = {
-                                        "categoria_id": cat_id,
-                                        "fornecedor": forn_edit,
-                                        "valor": val_edit,
-                                        "telefone": tel_edit,
-                                        "observacao": obs_edit
-                                    }
-                                    if update_orcamento(orc['id'], data):
-                                        st.session_state[f'editing_orc_{orc["id"]}'] = False
-                                        st.success("✅ Orçamento atualizado!")
-                                        st.rerun()
-                        with col_cancel:
-                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                                st.session_state[f'editing_orc_{orc["id"]}'] = False
-                                st.rerun()
-        else:
-            st.info(f"Nenhum orçamento encontrado para a categoria '{filtro_cat}'.")
+        df_orcamentos = pd.DataFrame(orcamentos_display)
         
+        # Preparar DataFrame para exibição (sem categoria_id)
+        df_display = df_orcamentos[['id', 'categoria', 'fornecedor', 'valor', 'telefone', 'observacao']].copy()
+        df_display.columns = ['ID', 'Categoria', 'Fornecedor', 'Valor', 'Telefone', 'Observação']
+        
+        # Criar mapeamento de categorias para SelectboxColumn
+        categorias_dict = {cat['nome']: cat['id'] for cat in categorias}
+        categorias_nomes = list(categorias_dict.keys())
+        
+        # Editor de dados (IGUAL Itens do Casamento)
+        st.markdown("### 📝 Tabela de Orçamentos")
+        edited_df = st.data_editor(
+            df_display,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "ID": st.column_config.NumberColumn(
+                    "ID",
+                    disabled=True  # ID não editável
+                ),
+                "Categoria": st.column_config.SelectboxColumn(
+                    "Categoria",
+                    options=categorias_nomes,
+                    required=True
+                ),
+                "Fornecedor": st.column_config.TextColumn(
+                    "Fornecedor",
+                    required=True
+                ),
+                "Valor": st.column_config.NumberColumn(
+                    "Valor (R$)",
+                    format="R$ %.2f",
+                    min_value=0.0,
+                    required=True
+                ),
+                "Telefone": st.column_config.TextColumn(
+                    "Telefone"
+                ),
+                "Observação": st.column_config.TextColumn(
+                    "Observação"
+                )
+            },
+            hide_index=True
+        )
+        
+        # Botão para salvar alterações (IGUAL Itens do Casamento)
+        if st.button("💾 Salvar Alterações", use_container_width=True, type="primary"):
+            # Converter de volta para formato original
+            edited_df.columns = ['id', 'categoria', 'fornecedor', 'valor', 'telefone', 'observacao']
+            
+            # Converter nome de categoria para categoria_id
+            orcamentos_atualizados = []
+            for idx, row in edited_df.iterrows():
+                categoria_nome = row['categoria']
+                categoria_id = categorias_dict.get(categoria_nome)
+                
+                if categoria_id:
+                    orcamentos_atualizados.append({
+                        'id': int(row['id']),
+                        'categoria_id': categoria_id,
+                        'fornecedor': row['fornecedor'],
+                        'valor': float(row['valor']),
+                        'telefone': row['telefone'],
+                        'observacao': row['observacao']
+                    })
+            
+            # Salvar no Supabase
+            with st.spinner("⏳ Salvando no Supabase..."):
+                sucesso = True
+                for orc in orcamentos_atualizados:
+                    orc_id = orc.pop('id')
+                    result = update_orcamento(orc_id, orc)
+                    if not result:
+                        sucesso = False
+                        break
+                
+                if sucesso:
+                    st.success("✅ Alterações salvas com sucesso no Supabase!")
+                    st.rerun()
+                else:
+                    st.error("❌ Erro ao salvar alterações. Tente novamente.")
+        
+        # Mostrar totais
         st.divider()
+        col1, col2 = st.columns(2)
         
-        # Totais por categoria
-        st.subheader("📊 Totais por Categoria")
+        with col1:
+            total_filtrado = df_display['Valor'].sum()
+            st.metric("💰 Total (filtrado)", f"R$ {total_filtrado:,.2f}")
+        
+        with col2:
+            qtd_orcamentos = len(df_display)
+            st.metric("📊 Quantidade", f"{qtd_orcamentos} orçamento(s)")
+    
+    else:
+        st.info("ℹ️ Nenhum orçamento cadastrado nesta categoria.")
+    
+    # ===== FORMULÁRIO ADICIONAR NOVO ORÇAMENTO (IGUAL Itens do Casamento) =====
+    st.divider()
+    st.markdown("### ➕ Adicionar Novo Orçamento")
+    
+    with st.form("novo_orcamento_form"):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if categorias:
+                nova_categoria = st.selectbox(
+                    "Categoria *",
+                    options=[cat['nome'] for cat in categorias]
+                )
+            else:
+                st.warning("⚠️ Adicione categorias primeiro!")
+                nova_categoria = None
+        
+        with col2:
+            novo_fornecedor = st.text_input(
+                "Fornecedor *",
+                placeholder="Nome do fornecedor"
+            )
+        
+        with col3:
+            novo_valor = st.number_input(
+                "Valor (R$) *",
+                min_value=0.0,
+                step=0.01,
+                format="%.2f"
+            )
+        
+        col4, col5 = st.columns(2)
+        
+        with col4:
+            novo_telefone = st.text_input(
+                "Telefone",
+                placeholder="(11) 98765-4321"
+            )
+        
+        with col5:
+            nova_observacao = st.text_input(
+                "Observação",
+                placeholder="Detalhes adicionais"
+            )
+        
+        submitted = st.form_submit_button("➕ Adicionar Orçamento", use_container_width=True, type="primary")
+        
+        if submitted:
+            if nova_categoria and novo_fornecedor:
+                # Obter categoria_id
+                categoria_id = next(
+                    (cat['id'] for cat in categorias if cat['nome'] == nova_categoria),
+                    None
+                )
+                
+                if categoria_id:
+                    with st.spinner("⏳ Adicionando ao Supabase..."):
+                        result = add_orcamento(
+                            categoria_id=categoria_id,
+                            fornecedor=novo_fornecedor,
+                            valor=novo_valor,
+                            telefone=novo_telefone,
+                            observacao=nova_observacao
+                        )
+                        
+                        if result:
+                            st.success(f"✅ Orçamento de '{novo_fornecedor}' adicionado com sucesso!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao adicionar orçamento. Tente novamente.")
+                else:
+                    st.error("❌ Categoria inválida!")
+            else:
+                st.error("❌ Os campos 'Categoria' e 'Fornecedor' são obrigatórios!")
+    
+    # ===== TOTAIS POR CATEGORIA =====
+    if orcamentos:
+        st.divider()
+        st.markdown("### 📊 Totais por Categoria")
+        
         totais = {}
-        for orc in orcamentos:  # Pegar todos sem filtro
+        for orc in orcamentos:
             cat_nome = orc['categorias']['nome']
             totais[cat_nome] = totais.get(cat_nome, 0) + float(orc['valor'])
         
-        # Exibir em colunas
-        if totais:
-            for cat, total in sorted(totais.items()):
-                st.write(f"**{cat}:** R$ {total:,.2f}")
-            
-            st.write("─" * 40)
-            st.write(f"### 💰 TOTAL GERAL: R$ {sum(totais.values()):,.2f}")
-    else:
-        st.info("Nenhum orçamento cadastrado. Adicione o primeiro orçamento acima!")
+        # Criar DataFrame para exibição
+        df_totais = pd.DataFrame([
+            {'Categoria': cat, 'Total': valor}
+            for cat, valor in sorted(totais.items())
+        ])
+        
+        st.dataframe(
+            df_totais,
+            column_config={
+                "Total": st.column_config.NumberColumn(
+                    "Total (R$)",
+                    format="R$ %.2f"
+                )
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+        
+        st.markdown(f"### 💰 **TOTAL GERAL: R$ {sum(totais.values()):,.2f}**")
 
 
 # Rodapé
