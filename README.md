@@ -6,6 +6,8 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 
 **⚠️ IMPORTANTE: Todos os dados são persistidos no Supabase (PostgreSQL na nuvem) para garantir segurança e disponibilidade permanente!**
 
+**📱 NOVO: Totalmente otimizado para mobile! Use em qualquer dispositivo - celular, tablet ou desktop.**
+
 **Desenvolvido com amor para tornar seu grande dia ainda mais especial! 💕**
 
 ## ✨ Funcionalidades
@@ -63,6 +65,30 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 - Tabela resumo: itens contratados vs pendentes
 - Download de dados em CSV e TXT
 - Resumo financeiro completo
+
+## 📱 Otimização Mobile (NEW!)
+
+**O aplicativo agora está totalmente otimizado para dispositivos móveis!**
+
+### ✨ Recursos Mobile-First:
+- 📱 **Sidebar Colapsável**: Começa fechada em mobile, economizando espaço
+- 🎯 **Botões Touch-Friendly**: Mínimo 48x48px (Apple HIG compliance)
+- 📊 **Dashboard Responsivo**: Layout 2x2 em vez de 4 colunas
+- 💳 **Cards Mobile**: Orçamentos exibidos em cards em vez de tabelas
+- 🔤 **Tipografia Otimizada**: Fonte mínima 16px (sem zoom automático iOS)
+- 📏 **Inputs Maiores**: Campos de formulário com 48px de altura
+- 🎨 **CSS Responsivo**: Breakpoints mobile (768px) e tablet (1024px)
+
+### 📐 Dispositivos Suportados:
+- ✅ iPhone SE (375px)
+- ✅ iPhone 12/13 (390px)
+- ✅ Samsung Galaxy (360px)
+- ✅ iPad Mini (768px)
+- ✅ iPad Pro (1024px+)
+
+### 📚 Documentação Mobile:
+- **[MOBILE_OPTIMIZATION_SUMMARY.md](MOBILE_OPTIMIZATION_SUMMARY.md)** - Detalhes técnicos completos
+- **[MOBILE_OPTIMIZATION_VISUAL_GUIDE.md](MOBILE_OPTIMIZATION_VISUAL_GUIDE.md)** - Guia visual com comparações
 
 ## 🔧 Pré-requisitos
 

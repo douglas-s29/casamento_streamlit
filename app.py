@@ -20,29 +20,191 @@ from utils.calculations import (
     calcular_investimento_mensal, formatar_moeda, calcular_porcentagem_tarefas
 )
 
-# Configuração da página
+# Configuração da página (mobile-first)
 st.set_page_config(
     page_title="💍 Gerenciador de Casamento",
     page_icon="💍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"  # Sidebar começa fechada em mobile
 )
 
-# CSS customizado para melhorar a aparência
-st.markdown("""
+
+def load_mobile_css():
+    """Carrega CSS responsivo para mobile"""
+    st.markdown("""
     <style>
-    .main {
-        background-color: #FFF5F7;
-    }
-    .stButton>button {
-        background-color: #FF69B4;
-        color: white;
-    }
-    .stButton>button:hover {
-        background-color: #FF1493;
-        color: white;
-    }
+        /* ========== DESKTOP STYLES ========== */
+        .main {
+            background-color: #FFF5F7;
+        }
+        .stButton>button {
+            background-color: #FF69B4;
+            color: white;
+        }
+        .stButton>button:hover {
+            background-color: #FF1493;
+            color: white;
+        }
+        
+        /* ========== MOBILE OPTIMIZATION ========== */
+        @media (max-width: 768px) {
+            /* Aumentar fonte base para evitar zoom automático no iOS */
+            html {
+                font-size: 16px !important;
+            }
+            
+            /* Sidebar colapsável automática */
+            section[data-testid="stSidebar"] {
+                width: 0px;
+            }
+            
+            section[data-testid="stSidebar"][aria-expanded="true"] {
+                width: 80vw;
+            }
+            
+            /* Botões touch-friendly (mínimo 44x44px - Apple guidelines) */
+            .stButton button {
+                min-height: 48px !important;
+                width: 100% !important;
+                font-size: 16px !important;
+                margin: 8px 0 !important;
+                padding: 12px 24px !important;
+            }
+            
+            /* Inputs maiores e mais fáceis de tocar */
+            .stTextInput input,
+            .stNumberInput input,
+            .stSelectbox select,
+            .stTextArea textarea {
+                min-height: 48px !important;
+                font-size: 16px !important;
+                padding: 12px !important;
+            }
+            
+            /* Métricas responsivas */
+            [data-testid="stMetricValue"] {
+                font-size: 24px !important;
+            }
+            
+            [data-testid="stMetricLabel"] {
+                font-size: 14px !important;
+            }
+            
+            [data-testid="stMetricDelta"] {
+                font-size: 12px !important;
+            }
+            
+            /* Tabelas com scroll horizontal suave */
+            .dataframe {
+                font-size: 12px !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Cards para substituir tabelas em mobile */
+            .mobile-card {
+                background: #262730;
+                border-radius: 12px;
+                padding: 16px;
+                margin: 12px 0;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+            
+            .mobile-card-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 12px;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .mobile-card-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #3d3d4a;
+            }
+            
+            .mobile-card-row:last-child {
+                border-bottom: none;
+            }
+            
+            .mobile-card-label {
+                font-size: 14px;
+                color: #a0a0a0;
+                flex: 0 0 40%;
+            }
+            
+            .mobile-card-value {
+                font-size: 14px;
+                color: #fff;
+                font-weight: 500;
+                flex: 1;
+                text-align: right;
+            }
+            
+            /* Expanders mais espaçados */
+            .streamlit-expanderHeader {
+                font-size: 16px !important;
+                padding: 16px !important;
+                min-height: 48px !important;
+            }
+            
+            /* Títulos responsivos */
+            h1 {
+                font-size: 28px !important;
+                line-height: 1.3 !important;
+            }
+            
+            h2 {
+                font-size: 22px !important;
+                line-height: 1.3 !important;
+            }
+            
+            h3 {
+                font-size: 18px !important;
+                line-height: 1.3 !important;
+            }
+            
+            /* Checkbox maiores */
+            input[type="checkbox"] {
+                width: 24px !important;
+                height: 24px !important;
+            }
+            
+            /* Form submit buttons */
+            .stFormSubmitButton button {
+                min-height: 48px !important;
+                width: 100% !important;
+                font-size: 16px !important;
+            }
+            
+            /* Radio buttons maiores */
+            .stRadio label {
+                padding: 12px !important;
+                font-size: 16px !important;
+            }
+            
+            /* Dividers com mais espaço */
+            hr {
+                margin: 24px 0 !important;
+            }
+        }
+        
+        /* ========== TABLET (768px - 1024px) ========== */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .stButton button {
+                min-height: 44px !important;
+            }
+        }
     </style>
     """, unsafe_allow_html=True)
+
+
+# Carregar CSS responsivo
+load_mobile_css()
 
 # Header
 st.title("💍 Gerenciador de Casamento")
@@ -68,6 +230,82 @@ st.sidebar.markdown("### 💝 Dicas")
 st.sidebar.info("💡 Mantenha seu orçamento atualizado regularmente!")
 
 
+# ==================== HELPER FUNCTIONS ====================
+def render_orcamento_card(orc, categorias):
+    """Renderiza orçamento como card mobile-friendly"""
+    categoria_nome = orc['categorias']['nome']
+    
+    # Card HTML
+    st.markdown(f"""
+    <div class="mobile-card">
+        <div class="mobile-card-title">
+            {categoria_nome}
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Fornecedor</span>
+            <span class="mobile-card-value">{orc['fornecedor']}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Valor</span>
+            <span class="mobile-card-value">R$ {float(orc['valor']):,.2f}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Telefone</span>
+            <span class="mobile-card-value">{orc.get('telefone', '-')}</span>
+        </div>
+        <div class="mobile-card-row">
+            <span class="mobile-card-label">Observação</span>
+            <span class="mobile-card-value">{orc.get('observacao', '-')}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Botões de ação (full-width em mobile)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✏️ Editar", key=f"edit_orc_{orc['id']}", use_container_width=True):
+            st.session_state[f'editing_orc_{orc["id"]}'] = True
+    with col2:
+        if st.button("🗑️ Deletar", key=f"del_orc_{orc['id']}", use_container_width=True):
+            with st.spinner("⏳ Deletando..."):
+                if delete_orcamento(orc['id']):
+                    st.success("✅ Orçamento deletado!")
+                    st.rerun()
+    
+    # Formulário de edição
+    if st.session_state.get(f'editing_orc_{orc["id"]}'):
+        with st.form(f"form_edit_orc_{orc['id']}"):
+            st.write("**✏️ Editar Orçamento**")
+            cat_edit = st.selectbox("Categoria", [cat['nome'] for cat in categorias], 
+                                   index=[cat['nome'] for cat in categorias].index(categoria_nome),
+                                   key=f"cat_edit_{orc['id']}")
+            forn_edit = st.text_input("Fornecedor", value=orc['fornecedor'], key=f"forn_edit_{orc['id']}")
+            val_edit = st.number_input("Valor (R$)", value=float(orc['valor']), step=0.01, format="%.2f", key=f"val_edit_{orc['id']}")
+            tel_edit = st.text_input("Telefone", value=orc.get('telefone', ''), key=f"tel_edit_{orc['id']}")
+            obs_edit = st.text_area("Observação", value=orc.get('observacao', ''), key=f"obs_edit_{orc['id']}")
+            
+            col_save, col_cancel = st.columns(2)
+            with col_save:
+                if st.form_submit_button("✅ Salvar", use_container_width=True):
+                    with st.spinner("⏳ Salvando..."):
+                        cat_id = next(c['id'] for c in categorias if c['nome'] == cat_edit)
+                        data = {
+                            "categoria_id": cat_id,
+                            "fornecedor": forn_edit,
+                            "valor": val_edit,
+                            "telefone": tel_edit,
+                            "observacao": obs_edit
+                        }
+                        if update_orcamento(orc['id'], data):
+                            st.session_state[f'editing_orc_{orc["id"]}'] = False
+                            st.success("✅ Orçamento atualizado!")
+                            st.rerun()
+            with col_cancel:
+                if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                    st.session_state[f'editing_orc_{orc["id"]}'] = False
+                    st.rerun()
+
+
 # ==================== SEÇÃO: DASHBOARD ====================
 if menu_option == "🏠 Dashboard":
     st.header("🏠 Dashboard - Visão Geral")
@@ -78,8 +316,8 @@ if menu_option == "🏠 Dashboard":
     reserva = calcular_reserva(orcamento_maximo, total_orcado)
     porcentagem_usada = calcular_porcentagem_usada(orcamento_maximo, total_orcado)
     
-    # Métricas em colunas
-    col1, col2, col3, col4 = st.columns(4)
+    # Métricas em colunas (2 colunas para mobile-friendly)
+    col1, col2 = st.columns(2)
     
     with col1:
         st.metric(
@@ -91,8 +329,11 @@ if menu_option == "🏠 Dashboard":
         st.metric(
             "📊 Total Orçado",
             formatar_moeda(total_orcado),
-            delta=f"{porcentagem_usada:.1f}% usado"
+            delta=f"{porcentagem_usada:.1f}% usado",
+            delta_color="inverse"
         )
+    
+    col3, col4 = st.columns(2)
     
     with col3:
         st.metric(
@@ -105,7 +346,8 @@ if menu_option == "🏠 Dashboard":
         porcentagem_tarefas = calcular_porcentagem_tarefas(tasks)
         st.metric(
             "✅ Tarefas Concluídas",
-            f"{porcentagem_tarefas:.0f}%"
+            f"{porcentagem_tarefas:.0f}%",
+            delta=f"{sum(1 for t in tasks if t.get('concluida', False))}/{len(tasks)}"
         )
     
     # Barra de progresso do orçamento com porcentagem visível
@@ -232,7 +474,7 @@ elif menu_option == "📋 Itens do Casamento":
         )
         
         # Botão para salvar alterações
-        if st.button("💾 Salvar Alterações", type="primary"):
+        if st.button("💾 Salvar Alterações", use_container_width=True, type="primary"):
             # Converter de volta para formato original
             edited_df.columns = ['id', 'item', 'servico', 'preco', 'status', 'comentarios']
             items_atualizados = edited_df.to_dict('records')
@@ -266,7 +508,7 @@ elif menu_option == "📋 Itens do Casamento":
         with col5:
             novos_comentarios = st.text_input("Comentários", placeholder="Observações")
         
-        submitted = st.form_submit_button("Adicionar Item", type="primary")
+        submitted = st.form_submit_button("➕ Adicionar Item", use_container_width=True, type="primary")
         
         if submitted and novo_item:
             with st.spinner("⏳ Adicionando ao Supabase..."):
@@ -323,7 +565,7 @@ elif menu_option == "💰 Planejamento Financeiro":
         )
     
     # Botão para salvar configurações
-    if st.button("💾 Salvar Configurações", type="primary"):
+    if st.button("💾 Salvar Configurações", use_container_width=True, type="primary"):
         config_atualizada = {
             "orcamento_maximo": orcamento_maximo,
             "taxa_juros": taxa_juros / 100,
@@ -446,14 +688,16 @@ elif menu_option == "✅ Checklist":
     # Adicionar nova tarefa
     with st.expander("➕ Adicionar Nova Tarefa"):
         with st.form("form_add_task"):
-            nova_tarefa = st.text_input("Descrição da tarefa")
-            submitted = st.form_submit_button("Adicionar", type="primary")
+            nova_tarefa = st.text_input("Descrição da tarefa", placeholder="Ex: Escolher vestido de noiva")
+            submitted = st.form_submit_button("➕ Adicionar Tarefa", use_container_width=True, type="primary")
             if submitted and nova_tarefa:
                 with st.spinner("⏳ Adicionando ao Supabase..."):
                     result = add_task(nova_tarefa, False)
                     if result:
                         st.success("✅ Tarefa adicionada!")
                         st.rerun()
+            elif submitted:
+                st.error("❌ Digite uma descrição para a tarefa!")
     
     # Calcular progresso
     total_tarefas = len(tasks)
@@ -514,11 +758,11 @@ elif menu_option == "✅ Checklist":
                     st.write(task['tarefa'])
             
             with col3:
-                if st.button("✏️", key=f"edit_task_{task['id']}"):
+                if st.button("✏️", key=f"edit_task_{task['id']}", use_container_width=True):
                     st.session_state[f'editing_task_{task["id"]}'] = True
             
             with col4:
-                if st.button("🗑️", key=f"del_task_{task['id']}"):
+                if st.button("🗑️", key=f"del_task_{task['id']}", use_container_width=True):
                     with st.spinner("⏳ Deletando..."):
                         if delete_task(task['id']):
                             st.success("Tarefa deletada!")
@@ -530,14 +774,14 @@ elif menu_option == "✅ Checklist":
                     novo_texto = st.text_input("Editar tarefa", value=task['tarefa'])
                     col_save, col_cancel = st.columns(2)
                     with col_save:
-                        if st.form_submit_button("Salvar"):
+                        if st.form_submit_button("✅ Salvar", use_container_width=True):
                             with st.spinner("⏳ Salvando..."):
                                 if update_task(task['id'], {"tarefa": novo_texto}):
                                     st.session_state[f'editing_task_{task["id"]}'] = False
                                     st.success("Tarefa atualizada!")
                                     st.rerun()
                     with col_cancel:
-                        if st.form_submit_button("Cancelar"):
+                        if st.form_submit_button("❌ Cancelar", use_container_width=True):
                             st.session_state[f'editing_task_{task["id"]}'] = False
                             st.rerun()
     else:
@@ -685,14 +929,16 @@ elif menu_option == "💸 Orçamentos":
     # Botão adicionar categoria
     with st.expander("➕ Adicionar Nova Categoria"):
         with st.form("form_add_categoria"):
-            nova_categoria = st.text_input("Nome da Categoria")
-            submitted = st.form_submit_button("Adicionar", type="primary")
+            nova_categoria = st.text_input("Nome da Categoria", placeholder="Ex: Buffet, Decoração, Música")
+            submitted = st.form_submit_button("➕ Adicionar Categoria", use_container_width=True, type="primary")
             if submitted and nova_categoria:
                 with st.spinner("⏳ Adicionando..."):
                     result = add_categoria(nova_categoria)
                     if result:
                         st.success(f"✅ Categoria '{nova_categoria}' adicionada!")
                         st.rerun()
+            elif submitted:
+                st.error("❌ Preencha o nome da categoria!")
     
     # Listar categorias
     categorias = get_all_categorias()
@@ -722,10 +968,10 @@ elif menu_option == "💸 Orçamentos":
                 with col_nome:
                     st.write(cat['nome'])
                 with col_edit:
-                    if st.button(f"✏️ Editar", key=f"edit_cat_{cat['id']}"):
+                    if st.button(f"✏️ Editar", key=f"edit_cat_{cat['id']}", use_container_width=True):
                         st.session_state[f'editing_cat_{cat["id"]}'] = True
                 with col_del:
-                    if st.button(f"🗑️ Deletar", key=f"del_cat_{cat['id']}"):
+                    if st.button(f"🗑️ Deletar", key=f"del_cat_{cat['id']}", use_container_width=True):
                         with st.spinner("⏳ Deletando..."):
                             if delete_categoria(cat['id']):
                                 st.success("✅ Categoria deletada!")
@@ -737,14 +983,14 @@ elif menu_option == "💸 Orçamentos":
                         novo_nome = st.text_input("Novo nome", value=cat['nome'])
                         col_save, col_cancel = st.columns(2)
                         with col_save:
-                            if st.form_submit_button("✅ Salvar"):
+                            if st.form_submit_button("✅ Salvar", use_container_width=True):
                                 with st.spinner("⏳ Salvando..."):
                                     if update_categoria(cat['id'], novo_nome):
                                         st.session_state[f'editing_cat_{cat["id"]}'] = False
                                         st.success("✅ Categoria atualizada!")
                                         st.rerun()
                         with col_cancel:
-                            if st.form_submit_button("❌ Cancelar"):
+                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
                                 st.session_state[f'editing_cat_{cat["id"]}'] = False
                                 st.rerun()
         else:
@@ -767,13 +1013,19 @@ elif menu_option == "💸 Orçamentos":
     if categorias:
         with st.expander("➕ Adicionar Novo Orçamento"):
             with st.form("form_add_orcamento"):
-                cat_selecionada = st.selectbox("Categoria", [cat['nome'] for cat in categorias])
-                fornecedor = st.text_input("Fornecedor")
-                valor = st.number_input("Valor (R$)", min_value=0.0, step=0.01, format="%.2f")
-                telefone = st.text_input("Telefone")
-                observacao = st.text_area("Observação")
+                cat_selecionada = st.selectbox("Categoria *", [cat['nome'] for cat in categorias])
+                fornecedor = st.text_input("Fornecedor *", placeholder="Nome do fornecedor")
                 
-                submitted = st.form_submit_button("Adicionar Orçamento", type="primary")
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    valor = st.number_input("Valor (R$) *", min_value=0.0, step=0.01, format="%.2f")
+                with col2:
+                    telefone = st.text_input("Telefone", placeholder="(11) 98765-4321")
+                
+                observacao = st.text_area("Observação", placeholder="Detalhes adicionais...", height=100)
+                
+                submitted = st.form_submit_button("➕ Adicionar Orçamento", use_container_width=True, type="primary")
+                
                 if submitted and cat_selecionada and fornecedor:
                     with st.spinner("⏳ Adicionando..."):
                         cat_id = next(c['id'] for c in categorias if c['nome'] == cat_selecionada)
@@ -781,8 +1033,10 @@ elif menu_option == "💸 Orçamentos":
                         if result:
                             st.success("✅ Orçamento adicionado!")
                             st.rerun()
+                elif submitted:
+                    st.error("❌ Preencha os campos obrigatórios (*)")
     
-    # Listar orçamentos
+    # Listar orçamentos como CARDS
     orcamentos = get_all_orcamentos()
     if orcamentos:
         # Filtrar se necessário
@@ -790,84 +1044,13 @@ elif menu_option == "💸 Orçamentos":
         if filtro_cat != "Todas":
             orcamentos_filtrados = [o for o in orcamentos if o['categorias']['nome'] == filtro_cat]
         
-        # Exibir tabela
+        # Exibir cards
         if orcamentos_filtrados:
-            st.markdown("#### Orçamentos Cadastrados")
-            
-            # Cabeçalho
-            col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 3, 1, 1])
-            with col1:
-                st.write("**Categoria**")
-            with col2:
-                st.write("**Fornecedor**")
-            with col3:
-                st.write("**Valor**")
-            with col4:
-                st.write("**Telefone**")
-            with col5:
-                st.write("**Observação**")
-            with col6:
-                st.write("")
-            with col7:
-                st.write("")
-            
-            st.divider()
-            
+            st.write(f"**{len(orcamentos_filtrados)} orçamento(s) encontrado(s)**")
             for orc in orcamentos_filtrados:
-                col1, col2, col3, col4, col5, col6, col7 = st.columns([2, 2, 2, 2, 3, 1, 1])
-                
-                with col1:
-                    st.write(orc['categorias']['nome'])
-                with col2:
-                    st.write(orc['fornecedor'])
-                with col3:
-                    st.write(f"R$ {orc['valor']:,.2f}")
-                with col4:
-                    st.write(orc.get('telefone', ''))
-                with col5:
-                    st.write(orc.get('observacao', ''))
-                with col6:
-                    if st.button("✏️", key=f"edit_orc_{orc['id']}"):
-                        st.session_state[f'editing_orc_{orc["id"]}'] = True
-                with col7:
-                    if st.button("🗑️", key=f"del_orc_{orc['id']}"):
-                        with st.spinner("⏳ Deletando..."):
-                            if delete_orcamento(orc['id']):
-                                st.success("Orçamento deletado!")
-                                st.rerun()
-                
-                # Formulário de edição
-                if st.session_state.get(f'editing_orc_{orc["id"]}') and categorias:
-                    with st.form(f"form_edit_orc_{orc['id']}"):
-                        cat_edit = st.selectbox("Categoria", [cat['nome'] for cat in categorias], 
-                                               index=[cat['nome'] for cat in categorias].index(orc['categorias']['nome']))
-                        forn_edit = st.text_input("Fornecedor", value=orc['fornecedor'])
-                        val_edit = st.number_input("Valor", value=float(orc['valor']), step=0.01, format="%.2f")
-                        tel_edit = st.text_input("Telefone", value=orc.get('telefone', ''))
-                        obs_edit = st.text_area("Observação", value=orc.get('observacao', ''))
-                        
-                        col_save, col_cancel = st.columns(2)
-                        with col_save:
-                            if st.form_submit_button("Salvar"):
-                                with st.spinner("⏳ Salvando..."):
-                                    cat_id = next(c['id'] for c in categorias if c['nome'] == cat_edit)
-                                    data = {
-                                        "categoria_id": cat_id,
-                                        "fornecedor": forn_edit,
-                                        "valor": val_edit,
-                                        "telefone": tel_edit,
-                                        "observacao": obs_edit
-                                    }
-                                    if update_orcamento(orc['id'], data):
-                                        st.session_state[f'editing_orc_{orc["id"]}'] = False
-                                        st.success("Orçamento atualizado!")
-                                        st.rerun()
-                        with col_cancel:
-                            if st.form_submit_button("Cancelar"):
-                                st.session_state[f'editing_orc_{orc["id"]}'] = False
-                                st.rerun()
+                render_orcamento_card(orc, categorias)
         else:
-            st.info(f"Nenhum orçamento cadastrado para a categoria '{filtro_cat}'.")
+            st.info(f"Nenhum orçamento encontrado para a categoria '{filtro_cat}'.")
         
         st.divider()
         
