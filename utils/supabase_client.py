@@ -184,21 +184,25 @@ def add_task(tarefa: str, concluida: bool = False) -> bool:
         return False
 
 
-def update_task(task_id: int, concluida: bool) -> bool:
+def update_task(task_id: int, data: Any) -> bool:
     """
-    Atualiza o status de conclusão de uma tarefa
+    Atualiza uma tarefa (status de conclusão e/ou nome)
     
     Args:
         task_id: ID da tarefa
-        concluida: Novo status de conclusão
+        data: Dicionário com campos a atualizar ou bool para concluida (compatibilidade)
         
     Returns:
         True se sucesso, False caso contrário
     """
     try:
         supabase = init_supabase()
-        data = {"concluida": concluida}
-        supabase.table('tasks').update(data).eq('id', task_id).execute()
+        # Compatibilidade com chamadas antigas passando bool
+        if isinstance(data, bool):
+            update_data = {"concluida": data}
+        else:
+            update_data = data
+        supabase.table('tasks').update(update_data).eq('id', task_id).execute()
         get_all_tasks.clear()  # Limpa o cache
         return True
     except Exception as e:
@@ -319,3 +323,178 @@ def update_all_config(config_dict: Dict[str, float]) -> bool:
     except Exception as e:
         st.error(f"❌ Erro ao atualizar configurações: {e}")
         return False
+
+
+# ==================== OPERAÇÕES DE CATEGORIAS ====================
+
+@st.cache_data(ttl=10)
+def get_all_categorias() -> List[Dict[str, Any]]:
+    """
+    Busca todas as categorias
+    
+    Returns:
+        Lista de categorias
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table('categorias').select('*').order('nome').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar categorias: {e}")
+        return []
+
+
+def add_categoria(nome: str) -> Optional[List[Dict[str, Any]]]:
+    """
+    Adiciona nova categoria
+    
+    Args:
+        nome: Nome da categoria
+        
+    Returns:
+        Dados da categoria criada ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        data = {"nome": nome}
+        response = supabase.table('categorias').insert(data).execute()
+        get_all_categorias.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao adicionar categoria: {e}")
+        return None
+
+
+def update_categoria(id: int, nome: str) -> Optional[List[Dict[str, Any]]]:
+    """
+    Atualiza categoria existente
+    
+    Args:
+        id: ID da categoria
+        nome: Novo nome
+        
+    Returns:
+        Dados da categoria atualizada ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        data = {"nome": nome}
+        response = supabase.table('categorias').update(data).eq('id', id).execute()
+        get_all_categorias.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao atualizar categoria: {e}")
+        return None
+
+
+def delete_categoria(id: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    Deleta categoria (e todos orçamentos relacionados via CASCADE)
+    
+    Args:
+        id: ID da categoria
+        
+    Returns:
+        Dados da categoria deletada ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table('categorias').delete().eq('id', id).execute()
+        get_all_categorias.clear()  # Limpa o cache
+        get_all_orcamentos.clear()  # Limpa cache de orçamentos também
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao deletar categoria: {e}")
+        return None
+
+
+# ==================== OPERAÇÕES DE ORÇAMENTOS ====================
+
+@st.cache_data(ttl=10)
+def get_all_orcamentos() -> List[Dict[str, Any]]:
+    """
+    Busca todos orçamentos com informação de categoria
+    
+    Returns:
+        Lista de orçamentos
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table('orcamentos').select('*, categorias(nome)').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar orçamentos: {e}")
+        return []
+
+
+def add_orcamento(categoria_id: int, fornecedor: str, valor: float, 
+                  telefone: str = "", observacao: str = "") -> Optional[List[Dict[str, Any]]]:
+    """
+    Adiciona novo orçamento
+    
+    Args:
+        categoria_id: ID da categoria
+        fornecedor: Nome do fornecedor
+        valor: Valor do orçamento
+        telefone: Telefone de contato
+        observacao: Observações
+        
+    Returns:
+        Dados do orçamento criado ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        data = {
+            "categoria_id": categoria_id,
+            "fornecedor": fornecedor,
+            "valor": valor,
+            "telefone": telefone,
+            "observacao": observacao
+        }
+        response = supabase.table('orcamentos').insert(data).execute()
+        get_all_orcamentos.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao adicionar orçamento: {e}")
+        return None
+
+
+def update_orcamento(id: int, data: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+    """
+    Atualiza orçamento existente
+    
+    Args:
+        id: ID do orçamento
+        data: Dicionário com campos a atualizar
+        
+    Returns:
+        Dados do orçamento atualizado ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table('orcamentos').update(data).eq('id', id).execute()
+        get_all_orcamentos.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao atualizar orçamento: {e}")
+        return None
+
+
+def delete_orcamento(id: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    Deleta orçamento
+    
+    Args:
+        id: ID do orçamento
+        
+    Returns:
+        Dados do orçamento deletado ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table('orcamentos').delete().eq('id', id).execute()
+        get_all_orcamentos.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao deletar orçamento: {e}")
+        return None
