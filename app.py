@@ -701,13 +701,15 @@ elif menu_option == "💸 Orçamentos":
     with st.expander(f"📋 Ver Categorias Cadastradas ({num_categorias} {'item' if num_categorias == 1 else 'itens'})"):
         if categorias:
             # Cabeçalho da tabela
-            col_id, col_nome, col_acoes = st.columns([1, 4, 3])
+            col_id, col_nome, col_edit, col_del = st.columns([1, 4, 1.5, 1.5])
             with col_id:
                 st.write("**ID**")
             with col_nome:
                 st.write("**Nome**")
-            with col_acoes:
-                st.write("**Ações**")
+            with col_edit:
+                st.write("**Editar**")
+            with col_del:
+                st.write("**Deletar**")
             
             st.divider()
             
