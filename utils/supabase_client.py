@@ -4,7 +4,7 @@ Fornece funções para CRUD de items, tasks e config
 """
 import streamlit as st
 from supabase import create_client, Client
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 
 
 def init_supabase() -> Client:
@@ -184,7 +184,7 @@ def add_task(tarefa: str, concluida: bool = False) -> bool:
         return False
 
 
-def update_task(task_id: int, data: Any) -> bool:
+def update_task(task_id: int, data: Union[bool, Dict[str, Any]]) -> bool:
     """
     Atualiza uma tarefa (status de conclusão e/ou nome)
     
