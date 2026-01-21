@@ -611,11 +611,19 @@ elif menu_option == "✅ Checklist":
     st.title("✅ Checklist de Tarefas")
     st.write("Organize e acompanhe todas as tarefas do seu casamento")
     
-    # Adicionar nova tarefa
+    # ===== ADICIONAR NOVA TAREFA =====
     with st.expander("➕ Adicionar Nova Tarefa"):
         with st.form("form_add_task"):
-            nova_tarefa = st.text_input("Descrição da tarefa", placeholder="Ex: Escolher vestido de noiva")
-            submitted = st.form_submit_button("➕ Adicionar Tarefa", use_container_width=True, type="primary")
+            nova_tarefa = st.text_input(
+                "Descrição da tarefa",
+                placeholder="Ex: Escolher vestido de noiva"
+            )
+            submitted = st.form_submit_button(
+                "➕ Adicionar Tarefa",
+                use_container_width=True,
+                type="primary"
+            )
+            
             if submitted:
                 if nova_tarefa:
                     with st.spinner("⏳ Adicionando ao Supabase..."):
@@ -626,148 +634,83 @@ elif menu_option == "✅ Checklist":
                 else:
                     st.error("❌ Digite uma descrição para a tarefa!")
     
-    # Listar tarefas
+    # ===== LISTAR TAREFAS =====
     if tasks:
         # Calcular progresso
         concluidas = sum(1 for t in tasks if t.get('concluida', False))
         total = len(tasks)
         porcentagem = (concluidas / total * 100) if total > 0 else 0
         
-        # Métrica de progresso
+        # Métricas de progresso
         col1, col2 = st.columns([2, 1])
+        
         with col1:
             st.metric(
                 label="📊 Progresso Geral",
                 value=f"{porcentagem:.0f}%",
                 delta=f"{concluidas}/{total} tarefas concluídas"
             )
+        
         with col2:
             st.metric(
                 label="🎯 Faltam",
                 value=f"{total - concluidas}",
-                delta=f"tarefas"
+                delta="tarefas"
             )
         
+        # Barra de progresso
         st.progress(porcentagem / 100)
         
         st.divider()
         
-        # Inicializar seleção no session_state
-        if 'selected_task_id' not in st.session_state:
-            st.session_state.selected_task_id = None
-        if 'editing_task_mode' not in st.session_state:
-            st.session_state.editing_task_mode = False
-        
         # Filtro
-        filtro_tarefa = st.selectbox(
+        filtro = st.selectbox(
             "Filtrar tarefas:",
             ["Todas", "Pendentes", "Concluídas"]
         )
         
-        st.markdown("### 📋 Lista de Tarefas")
+        # Aplicar filtro
+        if filtro == "Pendentes":
+            tasks_filtradas = [t for t in tasks if not t.get('concluida', False)]
+        elif filtro == "Concluídas":
+            tasks_filtradas = [t for t in tasks if t.get('concluida', False)]
+        else:
+            tasks_filtradas = tasks
         
-        # Listar tarefas (sem botões ao lado)
-        for task in tasks:
-            # Aplicar filtro
-            if filtro_tarefa == "Pendentes" and task.get('concluida', False):
-                continue
-            if filtro_tarefa == "Concluídas" and not task.get('concluida', False):
-                continue
-            
-            # Destacar tarefa selecionada
-            is_selected = st.session_state.selected_task_id == task['id']
-            
-            col1, col2 = st.columns([0.5, 9.5])
-            
-            with col1:
-                # Checkbox para marcar como concluída
-                checked = st.checkbox(
-                    "",
-                    value=task.get('concluida', False),
-                    key=f"check_{task['id']}",
-                    label_visibility="collapsed"
-                )
-                if checked != task.get('concluida', False):
-                    with st.spinner("⏳ Atualizando..."):
-                        if update_task(task['id'], {"concluida": checked}):
-                            st.rerun()
-            
-            with col2:
-                # Texto da tarefa (clicável para selecionar)
-                if is_selected:
-                    # Destacar com background (usando markdown)
-                    if task.get('concluida', False):
-                        st.markdown(f"### 🔵 ~~{task['tarefa']}~~")
-                    else:
-                        st.markdown(f"### 🔵 {task['tarefa']}")
-                else:
-                    # Botão invisível para seleção
-                    if task.get('concluida', False):
-                        if st.button(f"~~{task['tarefa']}~~", key=f"select_{task['id']}", use_container_width=True):
-                            st.session_state.selected_task_id = task['id']
-                            st.session_state.editing_task_mode = False
-                            st.rerun()
-                    else:
-                        if st.button(task['tarefa'], key=f"select_{task['id']}", use_container_width=True):
-                            st.session_state.selected_task_id = task['id']
-                            st.session_state.editing_task_mode = False
-                            st.rerun()
-        
-        # Área de ação para tarefa selecionada
-        if st.session_state.selected_task_id is not None:
-            st.divider()
-            
-            selected_task = next((t for t in tasks if t['id'] == st.session_state.selected_task_id), None)
-            
-            if selected_task:
-                if not st.session_state.editing_task_mode:
-                    # Mostrar tarefa selecionada com botões de ação
-                    st.info(f"📌 **Tarefa selecionada:** {selected_task['tarefa']}")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        if st.button("✏️ Editar Tarefa", use_container_width=True, type="primary"):
-                            st.session_state.editing_task_mode = True
-                            st.rerun()
-                    
-                    with col2:
-                        if st.button("🗑️ Deletar Tarefa", use_container_width=True):
-                            with st.spinner("⏳ Deletando..."):
-                                if delete_task(selected_task['id']):
-                                    st.session_state.selected_task_id = None
-                                    st.session_state.editing_task_mode = False
-                                    st.success("✅ Tarefa deletada!")
-                                    st.rerun()
-                    
-                    with col3:
-                        if st.button("❌ Cancelar Seleção", use_container_width=True):
-                            st.session_state.selected_task_id = None
-                            st.session_state.editing_task_mode = False
-                            st.rerun()
+        # Listar tarefas de forma SIMPLES
+        if tasks_filtradas:
+            for task in tasks_filtradas:
+                # Checkbox + texto da tarefa
+                col1, col2 = st.columns([0.5, 9.5])
                 
-                else:
-                    # Modo de edição
-                    st.warning(f"✏️ **Editando tarefa:** {selected_task['tarefa']}")
+                with col1:
+                    # Checkbox para marcar/desmarcar
+                    checked = st.checkbox(
+                        "",
+                        value=task.get('concluida', False),
+                        key=f"check_{task['id']}",
+                        label_visibility="collapsed"
+                    )
                     
-                    with st.form("form_edit_selected_task"):
-                        novo_texto = st.text_input("Novo nome da tarefa:", value=selected_task['tarefa'])
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.form_submit_button("✅ Salvar Alteração", use_container_width=True, type="primary"):
-                                if novo_texto:
-                                    with st.spinner("⏳ Salvando..."):
-                                        if update_task(selected_task['id'], {"tarefa": novo_texto}):
-                                            st.session_state.editing_task_mode = False
-                                            st.success("✅ Tarefa atualizada!")
-                                            st.rerun()
-                                else:
-                                    st.error("❌ O nome da tarefa não pode estar vazio!")
-                        with col2:
-                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                                st.session_state.editing_task_mode = False
+                    # Atualizar status se mudou
+                    if checked != task.get('concluida', False):
+                        with st.spinner("⏳ Atualizando..."):
+                            if update_task(task['id'], {"concluida": checked}):
                                 st.rerun()
+                
+                with col2:
+                    # Texto da tarefa (riscado se concluída)
+                    if task.get('concluida', False):
+                        st.markdown(f"~~{task['tarefa']}~~")
+                    else:
+                        st.write(task['tarefa'])
+        else:
+            # Mensagem se lista vazia após filtro
+            if filtro == "Pendentes":
+                st.success("🎉 Parabéns! Todas as tarefas foram concluídas!")
+            elif filtro == "Concluídas":
+                st.info("Nenhuma tarefa concluída ainda. Comece marcando as tarefas acima!")
+    
     else:
         st.info("📝 Nenhuma tarefa cadastrada ainda. Adicione tarefas acima para começar!")
 
