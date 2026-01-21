@@ -1032,7 +1032,7 @@ elif menu_option == "💸 Orçamentos":
             st.write(f"**{len(orcamentos_filtrados)} orçamento(s) encontrado(s)**")
             
             # Cabeçalho da tabela
-            col_cat, col_forn, col_val, col_tel, col_obs, col_acoes = st.columns([2, 2, 1.5, 2, 2.5, 1.5])
+            col_cat, col_forn, col_val, col_tel, col_obs, col_edit, col_del = st.columns([2, 2, 1.5, 2, 2.5, 0.75, 0.75])
             with col_cat:
                 st.write("**Categoria**")
             with col_forn:
@@ -1043,8 +1043,10 @@ elif menu_option == "💸 Orçamentos":
                 st.write("**Telefone**")
             with col_obs:
                 st.write("**Observação**")
-            with col_acoes:
+            with col_edit:
                 st.write("**Ações**")
+            with col_del:
+                st.write("")
             
             st.divider()
             
