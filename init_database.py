@@ -70,6 +70,49 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMP DEFAULT NOW()
 );
     """)
+    
+    print("-- Tabela categorias")
+    print("""
+CREATE TABLE IF NOT EXISTS categorias (
+  id SERIAL PRIMARY KEY,
+  nome TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+    """)
+    
+    print("-- Tabela orcamentos")
+    print("""
+CREATE TABLE IF NOT EXISTS orcamentos (
+  id SERIAL PRIMARY KEY,
+  categoria_id INTEGER REFERENCES categorias(id) ON DELETE CASCADE,
+  fornecedor TEXT NOT NULL,
+  valor DECIMAL(10,2) NOT NULL,
+  telefone TEXT,
+  observacao TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+    """)
+    
+    print("-- Dados iniciais de categorias")
+    print("""
+INSERT INTO categorias (nome) VALUES
+('Buffet'),
+('Igreja'),
+('Chácara'),
+('Decoração'),
+('Fotografia'),
+('DJ/Música'),
+('Vestido de Noiva'),
+('Roupa do Noivo'),
+('Doces e Bolos'),
+('Cabelo e Maquiagem'),
+('Convites'),
+('Lembrancinhas'),
+('Transporte'),
+('Lua de Mel'),
+('Documentação')
+ON CONFLICT (nome) DO NOTHING;
+    """)
 
 
 def insert_initial_data():

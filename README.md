@@ -42,10 +42,20 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 ### ✅ Checklist de Tarefas
 - Lista completa de tarefas típicas de casamento (25+ tarefas)
 - Adicionar tarefas personalizadas
+- **Editar e deletar tarefas**
 - Marcar tarefas como concluídas em tempo real
 - Filtrar por status (Todas/Pendentes/Concluídas)
 - Barra de progresso mostrando % de conclusão
 - **Progresso salvo instantaneamente no Supabase**
+
+### 💸 Orçamentos
+- Gerenciar categorias de serviços (Buffet, Igreja, Fotografia, etc.)
+- Adicionar, editar e deletar categorias
+- Cadastrar múltiplos orçamentos por categoria
+- Incluir informações de fornecedor, valor, telefone e observações
+- Filtrar orçamentos por categoria
+- Visualizar totais por categoria e total geral
+- **Organização completa de todos os orçamentos recebidos**
 
 ### 📊 Relatórios
 - Gráfico de barras com gastos por item
@@ -149,7 +159,7 @@ Isso criará:
 ### Passo 5: Verificar Tabelas
 
 1. No dashboard do Supabase, vá em **Table Editor**
-2. Você deve ver as 3 tabelas: `items`, `config`, `tasks`
+2. Você deve ver as 5 tabelas: `items`, `config`, `tasks`, `categorias`, `orcamentos`
 3. Cada tabela deve ter dados iniciais
 
 ## 🚀 Como Usar
@@ -164,13 +174,14 @@ A aplicação será aberta automaticamente no seu navegador em `http://localhost
 
 ### Navegação
 
-Use o menu lateral (sidebar) para navegar entre as 5 seções principais:
+Use o menu lateral (sidebar) para navegar entre as 6 seções principais:
 
 1. **🏠 Dashboard** - Visão geral e métricas
 2. **📋 Itens do Casamento** - Gerenciar itens e fornecedores
 3. **💰 Planejamento Financeiro** - Configurações e projeções
-4. **✅ Checklist** - Tarefas do casamento
+4. **✅ Checklist** - Tarefas do casamento (com edição e exclusão)
 5. **📊 Relatórios** - Análises e downloads
+6. **💸 Orçamentos** - Gerenciar orçamentos por categoria
 
 ## 📁 Estrutura do Projeto
 
@@ -201,6 +212,8 @@ Todos os dados são salvos automaticamente no Supabase:
 - **items**: Todos os itens do casamento (preços, fornecedores, status)
 - **config**: Configurações financeiras (orçamento, taxa de juros, etc.)
 - **tasks**: Lista de tarefas e checklist
+- **categorias**: Categorias de serviços para orçamentos
+- **orcamentos**: Orçamentos recebidos de fornecedores
 
 ### ✅ Vantagens do Supabase:
 - ✅ Dados persistem permanentemente na nuvem
@@ -398,6 +411,15 @@ Se tiver dúvidas ou sugestões:
 - Consulte a [documentação do Streamlit](https://docs.streamlit.io)
 
 ## 🆕 Changelog
+
+### v2.1.0 - Novas Funcionalidades e Melhorias
+- ✅ Nova seção "💸 Orçamentos" para gerenciar orçamentos por categoria
+- ✅ CRUD completo de categorias (Buffet, Igreja, Fotografia, etc.)
+- ✅ CRUD completo de orçamentos com fornecedor, valor, telefone e observações
+- ✅ Filtros por categoria e totais automáticos
+- ✅ Checklist melhorado com opções de editar e deletar tarefas
+- ✅ Correção do campo taxa de juros (agora aceita valores até 100%)
+- ✅ Interface aprimorada com melhor experiência do usuário
 
 ### v2.0.0 - Migração para Supabase
 - ✅ Migração completa de JSON para Supabase
