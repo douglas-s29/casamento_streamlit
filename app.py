@@ -106,16 +106,20 @@ if menu_option == "🏠 Dashboard":
             f"{porcentagem_tarefas:.0f}%"
         )
     
-    # Alertas
-    if porcentagem_usada > 80:
-        st.warning("⚠️ Atenção! Você já utilizou mais de 80% do orçamento!")
-    elif porcentagem_usada > 90:
-        st.error("🚨 Cuidado! Orçamento quase esgotado!")
-    
-    # Barra de progresso do orçamento
-    st.markdown("### 📈 Progresso do Orçamento")
+    # Barra de progresso do orçamento com porcentagem visível
+    st.markdown(f"### 📈 Progresso do Orçamento - {porcentagem_usada:.1f}% Utilizado")
     st.progress(min(porcentagem_usada / 100, 1.0))
-    st.caption(f"Utilizado: {formatar_moeda(total_orcado)} de {formatar_moeda(orcamento_maximo)}")
+    st.write(f"**{formatar_moeda(total_orcado)}** de **{formatar_moeda(orcamento_maximo)}** ({porcentagem_usada:.1f}% usado)")
+    
+    # Alertas visuais baseados na porcentagem
+    if porcentagem_usada >= 90:
+        st.error("⚠️ Atenção! Orçamento quase esgotado!")
+    elif porcentagem_usada >= 80:
+        st.warning("⚡ Cuidado! Você já usou mais de 80% do orçamento.")
+    elif porcentagem_usada >= 50:
+        st.info("📊 Acompanhe o orçamento - você já usou mais de 50%.")
+    else:
+        st.success("✅ Ótimo! Você ainda tem mais de 50% do orçamento disponível.")
     
     # Gráficos
     col1, col2 = st.columns(2)
@@ -196,6 +200,12 @@ elif menu_option == "📋 Itens do Casamento":
     # Renomear colunas para exibição
     if not df_items.empty:
         df_items_display = df_items.copy()
+        
+        # Remover coluna created_at se existir (vem do Supabase)
+        if 'created_at' in df_items_display.columns:
+            df_items_display = df_items_display.drop('created_at', axis=1)
+        
+        # Agora renomear as 6 colunas restantes
         df_items_display.columns = ['ID', 'Item', 'Serviço', 'Preço', 'Status', 'Comentários']
         
         # Editor de dados
@@ -286,11 +296,13 @@ elif menu_option == "💰 Planejamento Financeiro":
         )
         
         taxa_juros = st.number_input(
-            "📈 Taxa de Juros Mensal (%)",
+            "💹 Taxa de Juros Mensal (%)",
             min_value=0.0,
+            max_value=10.0,
             value=config.get('taxa_juros', 0.0035) * 100,
             step=0.01,
-            format="%.2f"
+            format="%.2f",
+            help="Taxa de juros mensal descontada a inflação (ex: 0.35 para 0,35%)"
         )
     
     with col2:
