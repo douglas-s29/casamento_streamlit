@@ -22,6 +22,7 @@ from utils.calculations import (
     calcular_total_orcado, calcular_reserva, calcular_porcentagem_usada,
     calcular_investimento_mensal, formatar_moeda, calcular_porcentagem_tarefas
 )
+from utils.calendar_utils import gerar_ics_agendamento, gerar_ics_multiplos_agendamentos
 
 # Configuração da página (mobile-first)
 st.set_page_config(
@@ -1514,7 +1515,7 @@ elif menu_option == "📅 Calendário":
             """, unsafe_allow_html=True)
             
             # Botões de ação
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 if agend.get('link'):
@@ -1530,6 +1531,23 @@ elif menu_option == "📅 Calendário":
                     if delete_agendamento(agend['id']):
                         st.success("✅ Agendamento deletado!")
                         st.rerun()
+            
+            with col4:
+                # Botão para exportar para calendário
+                try:
+                    ics_data = gerar_ics_agendamento(agend)
+                    nome_arquivo = f"visita_{agend['local'].replace(' ', '_')}_{agend['data']}.ics"
+                    st.download_button(
+                        label="📅 Calendário",
+                        data=ics_data,
+                        file_name=nome_arquivo,
+                        mime="text/calendar",
+                        use_container_width=True,
+                        key=f"ics_prox_{agend['id']}",
+                        help="Baixar e adicionar ao Google Calendar, Apple Calendar, Outlook, etc."
+                    )
+                except Exception as e:
+                    st.error(f"Erro ao gerar .ics: {str(e)}")
     else:
         st.info("📭 Nenhuma visita agendada para os próximos 7 dias.")
     
@@ -1693,7 +1711,7 @@ elif menu_option == "📅 Calendário":
                         if agend.get('endereco'):
                             st.markdown(f"📍 {agend['endereco']}")
                         
-                        col1, col2, col3 = st.columns(3)
+                        col1, col2, col3, col4 = st.columns(4)
                         with col1:
                             if agend.get('link'):
                                 st.link_button("🗺️", agend['link'], use_container_width=True)
@@ -1706,6 +1724,21 @@ elif menu_option == "📅 Calendário":
                                 if delete_agendamento(agend['id']):
                                     st.success("✅ Deletado!")
                                     st.rerun()
+                        with col4:
+                            try:
+                                ics_data = gerar_ics_agendamento(agend)
+                                nome_arquivo = f"visita_{agend['local'].replace(' ', '_')}_{agend['data']}.ics"
+                                st.download_button(
+                                    label="📅",
+                                    data=ics_data,
+                                    file_name=nome_arquivo,
+                                    mime="text/calendar",
+                                    use_container_width=True,
+                                    key=f"ics_cal_{agend['id']}",
+                                    help="Calendário"
+                                )
+                            except Exception as e:
+                                st.error(f"Erro: {str(e)}")
                         
                         st.divider()
             else:
@@ -1913,6 +1946,22 @@ elif menu_option == "📅 Calendário":
                         if delete_agendamento(agend['id']):
                             st.success("✅ Agendamento deletado!")
                             st.rerun()
+                    
+                    # Botão para exportar para calendário
+                    try:
+                        ics_data = gerar_ics_agendamento(agend)
+                        nome_arquivo = f"visita_{agend['local'].replace(' ', '_')}_{agend['data']}.ics"
+                        st.download_button(
+                            label="📅 Calendário",
+                            data=ics_data,
+                            file_name=nome_arquivo,
+                            mime="text/calendar",
+                            use_container_width=True,
+                            key=f"ics_all_{agend['id']}",
+                            help="Baixar e adicionar ao Google Calendar, Apple Calendar, Outlook, etc."
+                        )
+                    except Exception as e:
+                        st.error(f"Erro ao gerar .ics: {str(e)}")
                 
                 # Formulário de edição (se ativado)
                 if st.session_state.get(f'editing_agend_{agend["id"]}'):
@@ -1971,6 +2020,167 @@ elif menu_option == "📅 Calendário":
                 st.divider()
     else:
         st.info("📭 Nenhum agendamento encontrado com os filtros selecionados.")
+    
+    # ===== EXPORTAR AGENDAMENTOS =====
+    st.divider()
+    st.markdown("### 📤 Exportar para Calendário")
+    
+    st.write("Baixe seus agendamentos em formato `.ics` e importe no Google Calendar, Apple Calendar, Outlook ou qualquer outro calendário.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if agendamentos:
+            try:
+                ics_todos = gerar_ics_multiplos_agendamentos(agendamentos, "todas_visitas")
+                st.download_button(
+                    label="📥 Baixar Todos os Agendamentos (.ics)",
+                    data=ics_todos,
+                    file_name=f"casamento_visitas_todas_{datetime.now().strftime('%Y%m%d')}.ics",
+                    mime="text/calendar",
+                    use_container_width=True,
+                    type="primary",
+                    help=f"Exportar {len(agendamentos)} agendamento(s) para seu calendário"
+                )
+                st.caption(f"✅ {len(agendamentos)} agendamento(s)")
+            except Exception as e:
+                st.error(f"Erro ao gerar arquivo: {str(e)}")
+        else:
+            st.info("📭 Nenhum agendamento para exportar")
+    
+    with col2:
+        if agendamentos_filtrados and agendamentos_filtrados != agendamentos:
+            try:
+                ics_filtrados = gerar_ics_multiplos_agendamentos(agendamentos_filtrados, "visitas_filtradas")
+                st.download_button(
+                    label="📥 Baixar Agendamentos Filtrados (.ics)",
+                    data=ics_filtrados,
+                    file_name=f"casamento_visitas_filtradas_{datetime.now().strftime('%Y%m%d')}.ics",
+                    mime="text/calendar",
+                    use_container_width=True,
+                    help=f"Exportar {len(agendamentos_filtrados)} agendamento(s) filtrado(s)"
+                )
+                st.caption(f"✅ {len(agendamentos_filtrados)} agendamento(s) filtrado(s)")
+            except Exception as e:
+                st.error(f"Erro ao gerar arquivo: {str(e)}")
+    
+    # ===== TUTORIAL =====
+    with st.expander("❓ Como adicionar ao seu calendário"):
+        st.markdown("""
+    ## 📱 **iPhone / iPad (Apple Calendar)**
+    
+    1. Clique no botão **"📅 Calendário"** ou **"📥 Baixar Todos"**
+    2. O arquivo `.ics` será baixado
+    3. Abra o arquivo baixado
+    4. Toque em **"Adicionar ao Calendário"** ou **"Adicionar Todos os Eventos"**
+    5. ✅ **Pronto!** Os eventos foram adicionados com lembretes automáticos
+    
+    > 💡 **Dica:** Os lembretes aparecem 1 dia antes (9h) e 2 horas antes da visita.
+    
+    ---
+    
+    ## 🌐 **Google Calendar (Desktop)**
+    
+    1. Clique no botão **"📅 Calendário"** ou **"📥 Baixar Todos"**
+    2. Acesse: [Google Calendar](https://calendar.google.com)
+    3. No menu lateral, clique em **⚙️ Configurações**
+    4. No menu esquerdo, clique em **"Importar e exportar"**
+    5. Em **"Importar"**, clique em **"Selecionar arquivo do computador"**
+    6. Escolha o arquivo `.ics` baixado
+    7. Selecione em qual calendário deseja adicionar (ex: "Pessoal")
+    8. Clique em **"Importar"**
+    9. ✅ **Pronto!** Aguarde alguns segundos para os eventos aparecerem
+    
+    > 💡 **Dica:** Os eventos sincronizam automaticamente com seu celular Android.
+    
+    ---
+    
+    ## 📱 **Android (Google Calendar App)**
+    
+    1. Clique no botão **"📅 Calendário"** ou **"📥 Baixar Todos"**
+    2. Abra o arquivo `.ics` baixado
+    3. Escolha **"Google Calendar"** ou **"Calendário"**
+    4. Confirme a importação
+    5. ✅ **Pronto!** Os eventos foram adicionados
+    
+    ---
+    
+    ## 💻 **Outlook (Desktop / Web)**
+    
+    ### **Outlook Desktop:**
+    1. Clique no botão **"📅 Calendário"** ou **"📥 Baixar Todos"**
+    2. Abra o arquivo `.ics` baixado
+    3. O Outlook abre automaticamente com o(s) evento(s)
+    4. Clique em **"Salvar e Fechar"**
+    5. ✅ **Pronto!**
+    
+    ### **Outlook Web:**
+    1. Acesse: [Outlook Calendar](https://outlook.office.com/calendar)
+    2. Clique em **"Adicionar calendário"** → **"Carregar do arquivo"**
+    3. Selecione o arquivo `.ics` baixado
+    4. Clique em **"Importar"**
+    5. ✅ **Pronto!**
+    
+    ---
+    
+    ## 🔄 **Compartilhar com Noivo(a) / Família**
+    
+    1. Baixe o arquivo `.ics` (individual ou todos)
+    2. Envie por **WhatsApp**, **Email**, **Drive**, etc.
+    3. A outra pessoa importa no calendário dela seguindo os passos acima
+    4. ✅ **Pronto!** Agendas sincronizadas entre todos
+    
+    > 💡 **Dica:** Para compartilhar todos os agendamentos, use o botão **"📥 Baixar Todos"**.
+    
+    ---
+    
+    ## 📅 **Outros Calendários**
+    
+    O formato `.ics` (iCalendar) é compatível com praticamente todos os aplicativos de calendário:
+    
+    - ✅ **Thunderbird** (Lightning Calendar)
+    - ✅ **macOS Calendar**
+    - ✅ **Windows Calendar**
+    - ✅ **Samsung Calendar**
+    - ✅ **Calendário do Xiaomi**
+    - ✅ **Yahoo Calendar**
+    - ✅ **Zoho Calendar**
+    - ✅ E muitos outros...
+    
+    **Procedimento geral:** Procure por "Importar" ou "Adicionar do arquivo" nas configurações.
+    
+    ---
+    
+    ## 🔔 **Lembretes Incluídos**
+    
+    Cada agendamento vem com **2 lembretes automáticos**:
+    
+    1. 🔔 **1 dia antes às 9h** - Para você se preparar
+    2. 🔔 **2 horas antes** - Para você não esquecer e sair a tempo
+    
+    > Os lembretes funcionam automaticamente no celular (notificações push).
+    
+    ---
+    
+    ## ❓ **Problemas?**
+    
+    - **Arquivo não abre?** Tente abrir diretamente no aplicativo de calendário em vez de clicar no arquivo.
+    - **Eventos não aparecem?** Aguarde alguns segundos/minutos para sincronização.
+    - **Quer editar um evento?** Edite aqui no Gerenciador e exporte novamente.
+    
+    ---
+    
+    ## 💡 **Dica Extra: Atualização Automática**
+    
+    **Importante:** Os arquivos `.ics` são uma **exportação estática**. Se você editar/deletar um agendamento aqui, precisará:
+    
+    1. Deletar o evento antigo no seu calendário
+    2. Exportar e importar novamente
+    
+    **OU**
+    
+    Sempre usar o calendário deste app como referência principal e exportar apenas para ter lembretes no celular.
+    """)
     
     # ===== ESTATÍSTICAS =====
     if agendamentos:
