@@ -144,8 +144,8 @@ def gerar_ics_agendamento(agendamento):
         evento.add_component(alarme)
     
     # Alarme adicional (2 horas antes)
-    # Só adiciona se o horário do evento permitir um alarme 2h antes no mesmo dia
-    # (eventos depois das 02:00 ou entre 01:01 e 01:59)
+    # Só adiciona se o horário do evento for 02:00 ou posterior
+    # (para garantir que o alarme não dispare no dia anterior)
     hora_em_minutos = hora_agend.hour * 60 + hora_agend.minute
     if hora_em_minutos >= 120:  # >= 02:00 (120 minutos)
         alarme2 = Alarm()
