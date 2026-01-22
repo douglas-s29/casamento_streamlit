@@ -66,6 +66,19 @@ Aplicação web completa desenvolvida em Streamlit para gerenciar todo o planeja
 - Download de dados em CSV e TXT
 - Resumo financeiro completo
 
+### 📅 Calendário de Visitas (NEW!)
+- **Calendário interativo** com visualizações mensais, semanais e diárias
+- **Feriados brasileiros 2026** destacados automaticamente
+- **Próximas visitas** - resumo dos próximos 7 dias com destaque para hoje
+- **16 categorias** de agendamento (Buffet, Igreja, Fotógrafo, etc.)
+- **5 status** com cores (Agendado, Confirmado, Cancelado, Concluído, Reagendar)
+- Formulário completo para agendar visitas
+- **Filtros** por categoria, status e mês
+- **Edição inline** de agendamentos
+- **Integração Google Maps** para localização
+- **Estatísticas** de agendamentos
+- **Fallback** para date picker caso biblioteca não esteja instalada
+
 ## 📱 Otimização Mobile (NEW!)
 
 **O aplicativo agora está totalmente otimizado para dispositivos móveis!**
@@ -200,7 +213,7 @@ A aplicação será aberta automaticamente no seu navegador em `http://localhost
 
 ### Navegação
 
-Use o menu lateral (sidebar) para navegar entre as 6 seções principais:
+Use o menu lateral (sidebar) para navegar entre as 7 seções principais:
 
 1. **🏠 Dashboard** - Visão geral e métricas
 2. **📋 Itens do Casamento** - Gerenciar itens e fornecedores
@@ -208,25 +221,29 @@ Use o menu lateral (sidebar) para navegar entre as 6 seções principais:
 4. **✅ Checklist** - Tarefas do casamento (com edição e exclusão)
 5. **📊 Relatórios** - Análises e downloads
 6. **💸 Orçamentos** - Gerenciar orçamentos por categoria
+7. **📅 Calendário** - Organizar visitas a fornecedores (NOVO!)
 
 ## 📁 Estrutura do Projeto
 
 ```
 casamento_streamlit/
-├── app.py                       # Arquivo principal da aplicação
-├── requirements.txt             # Dependências do projeto
-├── README.md                    # Este arquivo
-├── .gitignore                   # Arquivos ignorados pelo Git
-├── database_setup.sql           # SQL para criar tabelas no Supabase
-├── create_tables.py             # Script auxiliar para gerar SQL
-├── init_database.py             # Script de inicialização (legacy)
+├── app.py                          # Arquivo principal da aplicação
+├── requirements.txt                # Dependências do projeto
+├── README.md                       # Este arquivo
+├── .gitignore                      # Arquivos ignorados pelo Git
+├── database_setup.sql              # SQL para criar tabelas no Supabase
+├── create_agendamentos_table.sql   # SQL para tabela de agendamentos (NOVO!)
+├── create_tables.py                # Script auxiliar para gerar SQL
+├── init_database.py                # Script de inicialização (legacy)
+├── CALENDARIO_DOCUMENTATION.md     # Documentação completa do Calendário (NOVO!)
+├── CALENDAR_VISUAL_GUIDE.md        # Guia visual do Calendário (NOVO!)
 ├── .streamlit/
-│   └── secrets.toml            # Credenciais Supabase (NÃO commitar!)
-└── utils/                       # Módulos utilitários
+│   └── secrets.toml               # Credenciais Supabase (NÃO commitar!)
+└── utils/                          # Módulos utilitários
     ├── __init__.py
-    ├── supabase_client.py      # Cliente e operações Supabase
-    ├── calculations.py         # Funções de cálculo financeiro
-    └── data_manager.py         # Gerenciamento de dados (legacy)
+    ├── supabase_client.py         # Cliente e operações Supabase (+ funções de agendamentos)
+    ├── calculations.py            # Funções de cálculo financeiro
+    └── data_manager.py            # Gerenciamento de dados (legacy)
 ```
 
 ## 💾 Persistência de Dados
@@ -240,6 +257,7 @@ Todos os dados são salvos automaticamente no Supabase:
 - **tasks**: Lista de tarefas e checklist
 - **categorias**: Categorias de serviços para orçamentos
 - **orcamentos**: Orçamentos recebidos de fornecedores
+- **agendamentos**: Visitas agendadas com fornecedores (NOVO!)
 
 ### ✅ Vantagens do Supabase:
 - ✅ Dados persistem permanentemente na nuvem
@@ -437,6 +455,24 @@ Se tiver dúvidas ou sugestões:
 - Consulte a [documentação do Streamlit](https://docs.streamlit.io)
 
 ## 🆕 Changelog
+
+### v2.2.0 - Calendário de Visitas (NEW!)
+- ✅ Nova seção "📅 Calendário" para organizar visitas a fornecedores
+- ✅ **Calendário interativo** com streamlit-calendar (FullCalendar.js)
+- ✅ **13 feriados brasileiros 2026** destacados no calendário
+- ✅ Seção "Próximas Visitas" com agendamentos dos próximos 7 dias
+- ✅ **16 categorias** de agendamento (Buffet, Igreja, Fotógrafo, etc.)
+- ✅ **5 status** com cores personalizadas (Agendado, Confirmado, Cancelado, etc.)
+- ✅ Formulário completo para agendar visitas
+- ✅ Filtros por categoria, status e mês
+- ✅ Edição inline de agendamentos
+- ✅ Integração com Google Maps
+- ✅ Estatísticas de agendamentos
+- ✅ Tabela `agendamentos` no Supabase
+- ✅ Funções helper para parsing de data/hora
+- ✅ Fallback para date picker caso biblioteca não instalada
+- ✅ Documentação completa (CALENDARIO_DOCUMENTATION.md)
+- ✅ Guia visual (CALENDAR_VISUAL_GUIDE.md)
 
 ### v2.1.0 - Novas Funcionalidades e Melhorias
 - ✅ Nova seção "💸 Orçamentos" para gerenciar orçamentos por categoria
