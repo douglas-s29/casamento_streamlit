@@ -108,8 +108,10 @@ def gerar_ics_agendamento(agendamento):
         evento.add('location', agendamento['local'])
     
     # Status do evento
-    status_evento = 'CONFIRMED' if 'Confirmado' in agendamento.get('status', '') else 'TENTATIVE'
-    if 'Cancelado' in agendamento.get('status', ''):
+    status_evento = 'TENTATIVE'  # Default
+    if 'Confirmado' in agendamento.get('status', '') or 'Concluído' in agendamento.get('status', ''):
+        status_evento = 'CONFIRMED'
+    elif 'Cancelado' in agendamento.get('status', ''):
         status_evento = 'CANCELLED'
     evento.add('status', status_evento)
     
@@ -224,8 +226,10 @@ def gerar_ics_multiplos_agendamentos(agendamentos, nome_arquivo="visitas"):
                 evento.add('location', agendamento['endereco'])
             
             # Status
-            status_evento = 'CONFIRMED' if 'Confirmado' in agendamento.get('status', '') else 'TENTATIVE'
-            if 'Cancelado' in agendamento.get('status', ''):
+            status_evento = 'TENTATIVE'  # Default
+            if 'Confirmado' in agendamento.get('status', '') or 'Concluído' in agendamento.get('status', ''):
+                status_evento = 'CONFIRMED'
+            elif 'Cancelado' in agendamento.get('status', ''):
                 status_evento = 'CANCELLED'
             evento.add('status', status_evento)
             
