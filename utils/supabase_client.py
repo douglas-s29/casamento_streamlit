@@ -498,3 +498,151 @@ def delete_orcamento(id: int) -> Optional[List[Dict[str, Any]]]:
     except Exception as e:
         st.error(f"❌ Erro ao deletar orçamento: {e}")
         return None
+
+
+# ==================== OPERAÇÕES DE AGENDAMENTOS ====================
+
+@st.cache_data(ttl=10)
+def get_all_agendamentos() -> List[Dict[str, Any]]:
+    """
+    Retorna todos os agendamentos
+    
+    Returns:
+        Lista de agendamentos ordenados por data e hora
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table("agendamentos").select("*").order("data", desc=False).order("hora", desc=False).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar agendamentos: {e}")
+        return []
+
+
+def get_agendamentos_by_data(data: str) -> List[Dict[str, Any]]:
+    """
+    Retorna agendamentos de uma data específica
+    
+    Args:
+        data: Data no formato YYYY-MM-DD
+        
+    Returns:
+        Lista de agendamentos da data especificada
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table("agendamentos").select("*").eq("data", data).order("hora", desc=False).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar agendamentos: {e}")
+        return []
+
+
+def get_proximos_agendamentos(dias: int = 7) -> List[Dict[str, Any]]:
+    """
+    Retorna agendamentos dos próximos X dias
+    
+    Args:
+        dias: Número de dias para buscar agendamentos futuros
+        
+    Returns:
+        Lista de agendamentos dos próximos dias
+    """
+    try:
+        from datetime import datetime, timedelta
+        hoje = datetime.now().date()
+        data_limite = hoje + timedelta(days=dias)
+        
+        supabase = init_supabase()
+        response = supabase.table("agendamentos").select("*").gte("data", str(hoje)).lte("data", str(data_limite)).order("data", desc=False).order("hora", desc=False).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Erro ao buscar próximos agendamentos: {e}")
+        return []
+
+
+def add_agendamento(data: str, hora: str, categoria: str, local: str, 
+                   endereco: str = "", telefone: str = "", contato: str = "", 
+                   observacao: str = "", status: str = "⏳ Agendado", 
+                   link: str = "", cor: str = "#FF69B4") -> Optional[List[Dict[str, Any]]]:
+    """
+    Adiciona novo agendamento
+    
+    Args:
+        data: Data no formato YYYY-MM-DD
+        hora: Hora no formato HH:MM:SS
+        categoria: Categoria do agendamento
+        local: Local/fornecedor
+        endereco: Endereço completo
+        telefone: Telefone de contato
+        contato: Nome do contato
+        observacao: Observações adicionais
+        status: Status do agendamento
+        link: Link para Google Maps ou site
+        cor: Cor para exibir no calendário
+        
+    Returns:
+        Dados do agendamento criado ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        agend_data = {
+            "data": data,
+            "hora": hora,
+            "categoria": categoria,
+            "local": local,
+            "endereco": endereco,
+            "telefone": telefone,
+            "contato": contato,
+            "observacao": observacao,
+            "status": status,
+            "link": link,
+            "cor": cor
+        }
+        response = supabase.table("agendamentos").insert(agend_data).execute()
+        get_all_agendamentos.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao adicionar agendamento: {e}")
+        return None
+
+
+def update_agendamento(id: int, data: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+    """
+    Atualiza agendamento existente
+    
+    Args:
+        id: ID do agendamento
+        data: Dicionário com campos a atualizar
+        
+    Returns:
+        Dados do agendamento atualizado ou None em caso de erro
+    """
+    try:
+        supabase = init_supabase()
+        response = supabase.table("agendamentos").update(data).eq("id", id).execute()
+        get_all_agendamentos.clear()  # Limpa o cache
+        return response.data
+    except Exception as e:
+        st.error(f"❌ Erro ao atualizar agendamento: {e}")
+        return None
+
+
+def delete_agendamento(id: int) -> bool:
+    """
+    Deleta agendamento
+    
+    Args:
+        id: ID do agendamento
+        
+    Returns:
+        True se sucesso, False caso contrário
+    """
+    try:
+        supabase = init_supabase()
+        supabase.table("agendamentos").delete().eq("id", id).execute()
+        get_all_agendamentos.clear()  # Limpa o cache
+        return True
+    except Exception as e:
+        st.error(f"❌ Erro ao deletar agendamento: {e}")
+        return False

@@ -8,12 +8,15 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime, timedelta, date, time as dt_time
 from utils.supabase_client import (
     get_all_items, add_item, update_item, delete_item, update_all_items,
     get_all_tasks, add_task, update_task, delete_task,
     get_config, update_config, update_all_config,
     get_all_categorias, add_categoria, update_categoria, delete_categoria,
-    get_all_orcamentos, add_orcamento, update_orcamento, delete_orcamento
+    get_all_orcamentos, add_orcamento, update_orcamento, delete_orcamento,
+    get_all_agendamentos, get_agendamentos_by_data, get_proximos_agendamentos,
+    add_agendamento, update_agendamento, delete_agendamento
 )
 from utils.calculations import (
     calcular_total_orcado, calcular_reserva, calcular_porcentagem_usada,
@@ -27,6 +30,96 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"  # Sidebar começa fechada em mobile
 )
+
+
+# ==================== CONSTANTES DO CALENDÁRIO ====================
+
+# Feriados nacionais brasileiros 2026
+FERIADOS_2026 = {
+    "2026-01-01": "Ano Novo",
+    "2026-02-16": "Carnaval",
+    "2026-02-17": "Carnaval",
+    "2026-04-03": "Sexta-feira Santa",
+    "2026-04-21": "Tiradentes",
+    "2026-05-01": "Dia do Trabalho",
+    "2026-06-04": "Corpus Christi",
+    "2026-09-07": "Independência do Brasil",
+    "2026-10-12": "Nossa Senhora Aparecida",
+    "2026-11-02": "Finados",
+    "2026-11-15": "Proclamação da República",
+    "2026-11-20": "Dia da Consciência Negra",
+    "2026-12-25": "Natal"
+}
+
+# Categorias de agendamento
+CATEGORIAS_AGENDAMENTO = [
+    "🍰 Buffet",
+    "🏛️ Igreja/Cerimônia",
+    "🎪 Espaço para Festa",
+    "📸 Fotógrafo",
+    "🎥 Videomaker",
+    "🎵 DJ/Música",
+    "🌸 Decoração",
+    "🚗 Transporte",
+    "💐 Flores",
+    "🎂 Bolo/Doces",
+    "👗 Vestido/Roupa",
+    "💄 Cabelo e Maquiagem",
+    "📄 Cartório/Documentos",
+    "🏨 Hospedagem",
+    "🎁 Lembrancinhas",
+    "📋 Outros"
+]
+
+# Status de agendamento
+STATUS_AGENDAMENTO = [
+    "⏳ Agendado",
+    "✅ Confirmado",
+    "🚫 Cancelado",
+    "✔️ Concluído",
+    "⏰ Reagendar"
+]
+
+# Cores por status
+STATUS_CORES = {
+    "⏳ Agendado": "#FFA500",    # Laranja
+    "✅ Confirmado": "#4CAF50",   # Verde
+    "🚫 Cancelado": "#F44336",   # Vermelho
+    "✔️ Concluído": "#9E9E9E",   # Cinza
+    "⏰ Reagendar": "#2196F3"    # Azul
+}
+
+
+# ==================== HELPER FUNCTIONS PARA CALENDÁRIO ====================
+
+def parse_agend_date(date_value):
+    """
+    Converte valor de data do banco para objeto date
+    
+    Args:
+        date_value: String 'YYYY-MM-DD' ou objeto date
+        
+    Returns:
+        Objeto datetime.date
+    """
+    if isinstance(date_value, str):
+        return datetime.strptime(date_value, '%Y-%m-%d').date()
+    return date_value
+
+
+def parse_agend_time(time_value):
+    """
+    Converte valor de hora do banco para objeto time
+    
+    Args:
+        time_value: String 'HH:MM:SS' ou objeto time
+        
+    Returns:
+        Objeto datetime.time
+    """
+    if isinstance(time_value, str):
+        return datetime.strptime(time_value, '%H:%M:%S').time()
+    return time_value
 
 
 def load_mobile_css():
@@ -222,7 +315,7 @@ st.sidebar.title("📋 Menu de Navegação")
 menu_option = st.sidebar.radio(
     "Escolha uma seção:",
     ["🏠 Dashboard", "📋 Itens do Casamento", "💰 Planejamento Financeiro", 
-     "✅ Checklist", "📊 Relatórios", "💸 Orçamentos"]
+     "✅ Checklist", "📊 Relatórios", "💸 Orçamentos", "📅 Calendário"]
 )
 
 st.sidebar.markdown("---")
@@ -1120,6 +1213,443 @@ elif menu_option == "💸 Orçamentos":
         )
         
         st.markdown(f"### 💰 **TOTAL GERAL: R$ {sum(totais.values()):,.2f}**")
+
+
+# ==================== SEÇÃO: CALENDÁRIO ====================
+elif menu_option == "📅 Calendário":
+    st.title("📅 Calendário de Visitas")
+    st.write("Organize suas visitas a fornecedores e locais do casamento")
+    
+    # Carregar agendamentos
+    agendamentos = get_all_agendamentos()
+    
+    # ===== SEÇÃO 1: PRÓXIMAS VISITAS =====
+    st.markdown("### 🔔 Próximas Visitas")
+    
+    proximos = get_proximos_agendamentos(7)
+    
+    if proximos:
+        st.info(f"📊 **{len(proximos)} agendamento(s)** nos próximos 7 dias")
+        
+        hoje = datetime.now().date()
+        amanha = hoje + timedelta(days=1)
+        
+        for agend in proximos[:5]:  # Mostrar no máximo 5
+            data_agend = parse_agend_date(agend['data'])
+            hora_agend = agend['hora']
+            
+            # Determinar label do dia
+            if data_agend == hoje:
+                dia_label = "🔴 HOJE"
+            elif data_agend == amanha:
+                dia_label = "📅 Amanhã"
+            else:
+                dias_diff = (data_agend - hoje).days
+                dia_label = f"📅 Em {dias_diff} dias"
+            
+            # Card minimalista
+            with st.expander(f"{dia_label} - {hora_agend} | {agend['categoria']} {agend['local']}", expanded=(data_agend == hoje)):
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown(f"**📍 Local:** {agend['local']}")
+                    if agend.get('endereco'):
+                        st.markdown(f"**🗺️ Endereço:** {agend['endereco']}")
+                    if agend.get('contato'):
+                        st.markdown(f"**👤 Contato:** {agend['contato']}")
+                    if agend.get('telefone'):
+                        st.markdown(f"**📞 Telefone:** {agend['telefone']}")
+                    if agend.get('observacao'):
+                        st.markdown(f"**📝 Observação:** {agend['observacao']}")
+                    st.markdown(f"**📊 Status:** {agend.get('status', 'Agendado')}")
+                
+                with col2:
+                    if agend.get('link'):
+                        st.link_button("🗺️ Maps", agend['link'], use_container_width=True)
+                    
+                    if st.button("✏️ Editar", key=f"edit_prox_{agend['id']}", use_container_width=True):
+                        st.session_state[f'editing_agend_{agend["id"]}'] = True
+                        st.rerun()
+                    
+                    if st.button("🗑️ Deletar", key=f"del_prox_{agend['id']}", use_container_width=True):
+                        if delete_agendamento(agend['id']):
+                            st.success("✅ Agendamento deletado!")
+                            st.rerun()
+    else:
+        st.info("📭 Nenhuma visita agendada para os próximos 7 dias.")
+    
+    st.divider()
+    
+    # ===== SEÇÃO 2: CALENDÁRIO INTERATIVO =====
+    st.markdown("### 📆 Calendário Interativo")
+    
+    # Usar streamlit-calendar (biblioteca mais moderna)
+    try:
+        from streamlit_calendar import calendar as st_calendar
+        
+        # Preparar eventos para o calendário
+        eventos = []
+        
+        # Adicionar feriados
+        for data_feriado, nome_feriado in FERIADOS_2026.items():
+            eventos.append({
+                "title": f"🔴 {nome_feriado}",
+                "start": data_feriado,
+                "end": data_feriado,
+                "color": "#F44336",
+                "allDay": True
+            })
+        
+        # Adicionar agendamentos
+        for agend in agendamentos:
+            data_str = agend['data'] if isinstance(agend['data'], str) else str(agend['data'])
+            hora_str = agend['hora'] if isinstance(agend['hora'], str) else str(agend['hora'])
+            
+            eventos.append({
+                "title": f"{agend['categoria']} - {agend['local']}",
+                "start": f"{data_str}T{hora_str}",
+                "color": agend.get('cor', '#FF69B4'),
+                "extendedProps": {
+                    "id": agend['id']
+                }
+            })
+        
+        # Configurações do calendário
+        calendar_options = {
+            "initialView": "dayGridMonth",
+            "headerToolbar": {
+                "left": "prev,next today",
+                "center": "title",
+                "right": "dayGridMonth,timeGridWeek,timeGridDay"
+            },
+            "locale": "pt-br",
+            "firstDay": 0,  # Domingo
+            "height": 600
+        }
+        
+        # Renderizar calendário
+        selected_date = st_calendar(
+            events=eventos,
+            options=calendar_options,
+            key="calendario_visitas"
+        )
+        
+        st.caption("🔴 Feriado   🔵 Agendamento   ⭐ Clique na data para ver detalhes")
+        
+    except ImportError:
+        st.warning("⚠️ Biblioteca streamlit-calendar não instalada. Usando calendário simplificado.")
+        
+        # Fallback: Calendário simples com st.date_input
+        st.markdown("**Selecione uma data:**")
+        data_selecionada = st.date_input(
+            "Data",
+            value=datetime.now().date(),
+            min_value=date(2026, 1, 1),
+            max_value=date(2026, 12, 31),
+            format="DD/MM/YYYY",
+            label_visibility="collapsed"
+        )
+        
+        # Mostrar agendamentos da data selecionada
+        if data_selecionada:
+            agends_dia = get_agendamentos_by_data(str(data_selecionada))
+            
+            # Verificar se é feriado
+            data_str = str(data_selecionada)
+            if data_str in FERIADOS_2026:
+                st.info(f"🔴 **Feriado:** {FERIADOS_2026[data_str]}")
+            
+            if agends_dia:
+                st.success(f"📅 **{len(agends_dia)} agendamento(s)** em {data_selecionada.strftime('%d/%m/%Y')}")
+                
+                for agend in agends_dia:
+                    with st.container():
+                        st.markdown(f"**{agend['hora']} - {agend['categoria']} {agend['local']}**")
+                        st.markdown(f"📊 Status: {agend.get('status', 'Agendado')}")
+                        if agend.get('endereco'):
+                            st.markdown(f"📍 {agend['endereco']}")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            if agend.get('link'):
+                                st.link_button("🗺️", agend['link'], use_container_width=True)
+                        with col2:
+                            if st.button("✏️", key=f"edit_cal_{agend['id']}", use_container_width=True):
+                                st.session_state[f'editing_agend_{agend["id"]}'] = True
+                                st.rerun()
+                        with col3:
+                            if st.button("🗑️", key=f"del_cal_{agend['id']}", use_container_width=True):
+                                if delete_agendamento(agend['id']):
+                                    st.success("✅ Deletado!")
+                                    st.rerun()
+                        
+                        st.divider()
+            else:
+                st.info(f"📭 Nenhum agendamento em {data_selecionada.strftime('%d/%m/%Y')}")
+    
+    st.divider()
+    
+    # ===== SEÇÃO 3: AGENDAR NOVA VISITA =====
+    with st.expander("➕ Agendar Nova Visita"):
+        with st.form("form_novo_agendamento"):
+            st.markdown("### 📝 Dados da Visita")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                nova_data = st.date_input(
+                    "📅 Data *",
+                    value=datetime.now().date(),
+                    min_value=date(2026, 1, 1),
+                    max_value=date(2026, 12, 31),
+                    format="DD/MM/YYYY"
+                )
+            
+            with col2:
+                nova_hora = st.time_input(
+                    "🕐 Hora *",
+                    value=dt_time(10, 0)
+                )
+            
+            with col3:
+                nova_categoria = st.selectbox(
+                    "📂 Categoria *",
+                    CATEGORIAS_AGENDAMENTO
+                )
+            
+            col4, col5 = st.columns(2)
+            
+            with col4:
+                novo_local = st.text_input(
+                    "🏢 Local/Fornecedor *",
+                    placeholder="Ex: Chácara Magali"
+                )
+            
+            with col5:
+                novo_contato = st.text_input(
+                    "👤 Contato",
+                    placeholder="Ex: João Silva"
+                )
+            
+            col6, col7 = st.columns(2)
+            
+            with col6:
+                novo_telefone = st.text_input(
+                    "📞 Telefone",
+                    placeholder="(11) 98765-4321"
+                )
+            
+            with col7:
+                novo_status = st.selectbox(
+                    "📊 Status",
+                    STATUS_AGENDAMENTO,
+                    index=0
+                )
+            
+            novo_endereco = st.text_input(
+                "📍 Endereço",
+                placeholder="Rua ABC, 123 - Bairro - Cidade/UF"
+            )
+            
+            novo_link = st.text_input(
+                "🔗 Link (Google Maps, site)",
+                placeholder="https://goo.gl/maps/..."
+            )
+            
+            nova_observacao = st.text_area(
+                "📝 Observações",
+                placeholder="Detalhes importantes sobre a visita...",
+                height=100
+            )
+            
+            submitted = st.form_submit_button(
+                "➕ Agendar Visita",
+                use_container_width=True,
+                type="primary"
+            )
+            
+            if submitted:
+                if nova_data and nova_hora and nova_categoria and novo_local:
+                    # Obter cor do status
+                    cor = STATUS_CORES.get(novo_status, "#FF69B4")
+                    
+                    result = add_agendamento(
+                        data=str(nova_data),
+                        hora=str(nova_hora),
+                        categoria=nova_categoria,
+                        local=novo_local,
+                        endereco=novo_endereco,
+                        telefone=novo_telefone,
+                        contato=novo_contato,
+                        observacao=nova_observacao,
+                        status=novo_status,
+                        link=novo_link,
+                        cor=cor
+                    )
+                    
+                    if result:
+                        st.success(f"✅ Visita agendada para {nova_data.strftime('%d/%m/%Y')} às {nova_hora}!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Erro ao agendar visita. Tente novamente.")
+                else:
+                    st.error("❌ Preencha todos os campos obrigatórios (*)")
+    
+    st.divider()
+    
+    # ===== SEÇÃO 4: TODOS OS AGENDAMENTOS =====
+    st.markdown("### 📋 Todos os Agendamentos")
+    
+    # Filtros
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        filtro_categoria = st.selectbox(
+            "Categoria:",
+            ["Todas"] + CATEGORIAS_AGENDAMENTO
+        )
+    
+    with col2:
+        filtro_status = st.selectbox(
+            "Status:",
+            ["Todos"] + STATUS_AGENDAMENTO
+        )
+    
+    with col3:
+        meses = ["Todos", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                 "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        filtro_mes = st.selectbox("Mês:", meses)
+    
+    # Aplicar filtros
+    agendamentos_filtrados = agendamentos.copy()
+    
+    if filtro_categoria != "Todas":
+        agendamentos_filtrados = [a for a in agendamentos_filtrados if a['categoria'] == filtro_categoria]
+    
+    if filtro_status != "Todos":
+        agendamentos_filtrados = [a for a in agendamentos_filtrados if a['status'] == filtro_status]
+    
+    if filtro_mes != "Todos":
+        mes_num = meses.index(filtro_mes)
+        agendamentos_filtrados = [a for a in agendamentos_filtrados 
+                                   if parse_agend_date(a['data']).month == mes_num]
+    
+    # Mostrar agendamentos
+    if agendamentos_filtrados:
+        st.write(f"**{len(agendamentos_filtrados)} agendamento(s) encontrado(s)**")
+        
+        for agend in agendamentos_filtrados:
+            data_agend = parse_agend_date(agend['data'])
+            
+            # Card para cada agendamento
+            with st.container():
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    st.markdown(f"### {data_agend.strftime('%d/%m/%Y')} - {agend['hora']}")
+                    st.markdown(f"**{agend['categoria']} - {agend['local']}**")
+                    st.markdown(f"📊 Status: {agend.get('status', 'Agendado')}")
+                    
+                    if agend.get('endereco'):
+                        st.markdown(f"📍 {agend['endereco']}")
+                    if agend.get('contato'):
+                        st.markdown(f"👤 {agend['contato']}")
+                    if agend.get('telefone'):
+                        st.markdown(f"📞 {agend['telefone']}")
+                    if agend.get('observacao'):
+                        st.markdown(f"📝 {agend['observacao']}")
+                
+                with col2:
+                    if agend.get('link'):
+                        st.link_button("🗺️ Maps", agend['link'], use_container_width=True)
+                    
+                    if st.button("✏️ Editar", key=f"edit_all_{agend['id']}", use_container_width=True):
+                        st.session_state[f'editing_agend_{agend["id"]}'] = True
+                        st.rerun()
+                    
+                    if st.button("🗑️ Deletar", key=f"del_all_{agend['id']}", use_container_width=True):
+                        if delete_agendamento(agend['id']):
+                            st.success("✅ Agendamento deletado!")
+                            st.rerun()
+                
+                # Formulário de edição (se ativado)
+                if st.session_state.get(f'editing_agend_{agend["id"]}'):
+                    with st.form(f"form_edit_{agend['id']}"):
+                        st.markdown("#### ✏️ Editar Agendamento")
+                        
+                        edit_col1, edit_col2, edit_col3 = st.columns(3)
+                        
+                        with edit_col1:
+                            edit_data = st.date_input("Data", value=data_agend, format="DD/MM/YYYY")
+                        with edit_col2:
+                            hora_obj = parse_agend_time(agend['hora'])
+                            edit_hora = st.time_input("Hora", value=hora_obj)
+                        with edit_col3:
+                            edit_categoria = st.selectbox("Categoria", CATEGORIAS_AGENDAMENTO, 
+                                                          index=CATEGORIAS_AGENDAMENTO.index(agend['categoria']) if agend['categoria'] in CATEGORIAS_AGENDAMENTO else 0)
+                        
+                        edit_local = st.text_input("Local", value=agend['local'])
+                        edit_contato = st.text_input("Contato", value=agend.get('contato', ''))
+                        edit_telefone = st.text_input("Telefone", value=agend.get('telefone', ''))
+                        edit_status = st.selectbox("Status", STATUS_AGENDAMENTO,
+                                                    index=STATUS_AGENDAMENTO.index(agend['status']) if agend['status'] in STATUS_AGENDAMENTO else 0)
+                        edit_endereco = st.text_input("Endereço", value=agend.get('endereco', ''))
+                        edit_link = st.text_input("Link", value=agend.get('link', ''))
+                        edit_observacao = st.text_area("Observações", value=agend.get('observacao', ''))
+                        
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.form_submit_button("✅ Salvar", use_container_width=True, type="primary"):
+                                cor = STATUS_CORES.get(edit_status, "#FF69B4")
+                                
+                                update_data = {
+                                    "data": str(edit_data),
+                                    "hora": str(edit_hora),
+                                    "categoria": edit_categoria,
+                                    "local": edit_local,
+                                    "endereco": edit_endereco,
+                                    "telefone": edit_telefone,
+                                    "contato": edit_contato,
+                                    "observacao": edit_observacao,
+                                    "status": edit_status,
+                                    "link": edit_link,
+                                    "cor": cor
+                                }
+                                
+                                if update_agendamento(agend['id'], update_data):
+                                    st.session_state[f'editing_agend_{agend["id"]}'] = False
+                                    st.success("✅ Agendamento atualizado!")
+                                    st.rerun()
+                        
+                        with col_cancel:
+                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                                st.session_state[f'editing_agend_{agend["id"]}'] = False
+                                st.rerun()
+                
+                st.divider()
+    else:
+        st.info("📭 Nenhum agendamento encontrado com os filtros selecionados.")
+    
+    # ===== ESTATÍSTICAS =====
+    if agendamentos:
+        st.divider()
+        st.markdown("### 📊 Estatísticas")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        total = len(agendamentos)
+        agendados = len([a for a in agendamentos if a['status'] == '⏳ Agendado'])
+        confirmados = len([a for a in agendamentos if a['status'] == '✅ Confirmado'])
+        concluidos = len([a for a in agendamentos if a['status'] == '✔️ Concluído'])
+        
+        with col1:
+            st.metric("Total", total)
+        with col2:
+            st.metric("Agendados", agendados)
+        with col3:
+            st.metric("Confirmados", confirmados)
+        with col4:
+            st.metric("Concluídos", concluidos)
 
 
 # Rodapé
