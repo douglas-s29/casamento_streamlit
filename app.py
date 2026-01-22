@@ -90,6 +90,38 @@ STATUS_CORES = {
 }
 
 
+# ==================== HELPER FUNCTIONS PARA CALENDÁRIO ====================
+
+def parse_agend_date(date_value):
+    """
+    Converte valor de data do banco para objeto date
+    
+    Args:
+        date_value: String 'YYYY-MM-DD' ou objeto date
+        
+    Returns:
+        Objeto datetime.date
+    """
+    if isinstance(date_value, str):
+        return datetime.strptime(date_value, '%Y-%m-%d').date()
+    return date_value
+
+
+def parse_agend_time(time_value):
+    """
+    Converte valor de hora do banco para objeto time
+    
+    Args:
+        time_value: String 'HH:MM:SS' ou objeto time
+        
+    Returns:
+        Objeto datetime.time
+    """
+    if isinstance(time_value, str):
+        return datetime.strptime(time_value, '%H:%M:%S').time()
+    return time_value
+
+
 def load_mobile_css():
     """Carrega CSS responsivo para mobile"""
     st.markdown("""
@@ -1203,7 +1235,7 @@ elif menu_option == "📅 Calendário":
         amanha = hoje + timedelta(days=1)
         
         for agend in proximos[:5]:  # Mostrar no máximo 5
-            data_agend = datetime.strptime(agend['data'], '%Y-%m-%d').date() if isinstance(agend['data'], str) else agend['data']
+            data_agend = parse_agend_date(agend['data'])
             hora_agend = agend['hora']
             
             # Determinar label do dia
@@ -1500,14 +1532,14 @@ elif menu_option == "📅 Calendário":
     if filtro_mes != "Todos":
         mes_num = meses.index(filtro_mes)
         agendamentos_filtrados = [a for a in agendamentos_filtrados 
-                                   if datetime.strptime(a['data'] if isinstance(a['data'], str) else str(a['data']), '%Y-%m-%d').month == mes_num]
+                                   if parse_agend_date(a['data']).month == mes_num]
     
     # Mostrar agendamentos
     if agendamentos_filtrados:
         st.write(f"**{len(agendamentos_filtrados)} agendamento(s) encontrado(s)**")
         
         for agend in agendamentos_filtrados:
-            data_agend = datetime.strptime(agend['data'], '%Y-%m-%d').date() if isinstance(agend['data'], str) else agend['data']
+            data_agend = parse_agend_date(agend['data'])
             
             # Card para cada agendamento
             with st.container():
@@ -1550,7 +1582,7 @@ elif menu_option == "📅 Calendário":
                         with edit_col1:
                             edit_data = st.date_input("Data", value=data_agend, format="DD/MM/YYYY")
                         with edit_col2:
-                            hora_obj = datetime.strptime(agend['hora'], '%H:%M:%S').time() if isinstance(agend['hora'], str) else agend['hora']
+                            hora_obj = parse_agend_time(agend['hora'])
                             edit_hora = st.time_input("Hora", value=hora_obj)
                         with edit_col3:
                             edit_categoria = st.selectbox("Categoria", CATEGORIAS_AGENDAMENTO, 
