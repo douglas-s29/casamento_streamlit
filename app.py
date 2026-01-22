@@ -1220,6 +1220,241 @@ elif menu_option == "📅 Calendário":
     st.title("📅 Calendário de Visitas")
     st.write("Organize suas visitas a fornecedores e locais do casamento")
     
+    # CSS customizado para calendário polido
+    st.markdown("""
+    <style>
+        /* ========== CALENDÁRIO POLIDO ========== */
+        
+        /* Container principal do calendário */
+        .fc {
+            border-radius: 16px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+            overflow: hidden !important;
+            border: none !important;
+            background: #1e1e2e !important;
+        }
+        
+        /* Cabeçalho do calendário */
+        .fc-header-toolbar {
+            background: linear-gradient(135deg, #FF69B4 0%, #FF1493 100%) !important;
+            padding: 24px !important;
+            border-radius: 16px 16px 0 0 !important;
+            margin-bottom: 0 !important;
+        }
+        
+        .fc-toolbar-title {
+            color: white !important;
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            text-transform: capitalize !important;
+        }
+        
+        /* Botões do cabeçalho */
+        .fc-button {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 10px !important;
+            color: white !important;
+            font-weight: 600 !important;
+            padding: 8px 16px !important;
+            transition: all 0.3s ease !important;
+            text-transform: capitalize !important;
+        }
+        
+        .fc-button:hover {
+            background: rgba(255, 255, 255, 0.35) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3) !important;
+        }
+        
+        .fc-button:active,
+        .fc-button-active {
+            background: rgba(255, 255, 255, 0.4) !important;
+            border-color: white !important;
+        }
+        
+        .fc-button:disabled {
+            opacity: 0.4 !important;
+        }
+        
+        /* Nomes dos dias da semana */
+        .fc-col-header {
+            background: #2a2a3e !important;
+            border-bottom: 2px solid #FF69B4 !important;
+        }
+        
+        .fc-col-header-cell {
+            padding: 12px 8px !important;
+            font-weight: 700 !important;
+            color: #FF69B4 !important;
+            text-transform: uppercase !important;
+            font-size: 13px !important;
+            letter-spacing: 1px !important;
+        }
+        
+        /* Células do calendário (dias) */
+        .fc-daygrid-day {
+            background: #262636 !important;
+            border-color: #3a3a4a !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer !important;
+        }
+        
+        .fc-daygrid-day:hover {
+            background: #2e2e3e !important;
+            box-shadow: inset 0 0 0 2px #FF69B4 !important;
+        }
+        
+        /* Número do dia */
+        .fc-daygrid-day-number {
+            color: #e0e0e0 !important;
+            font-weight: 600 !important;
+            font-size: 15px !important;
+            padding: 8px !important;
+        }
+        
+        /* Dia de hoje (destaque especial) */
+        .fc-day-today {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.15) 0%, rgba(255, 20, 147, 0.15) 100%) !important;
+            border: 2px solid #FF69B4 !important;
+            position: relative !important;
+        }
+        
+        .fc-day-today .fc-daygrid-day-number {
+            background: #FF69B4 !important;
+            color: white !important;
+            border-radius: 50% !important;
+            width: 32px !important;
+            height: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Dias de outros meses (esmaecidos) */
+        .fc-day-other .fc-daygrid-day-number {
+            color: #606060 !important;
+            opacity: 0.5 !important;
+        }
+        
+        /* Eventos no calendário */
+        .fc-event {
+            border-radius: 8px !important;
+            padding: 4px 8px !important;
+            margin: 2px 4px !important;
+            border: none !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+            transition: all 0.2s ease !important;
+            font-weight: 500 !important;
+            font-size: 12px !important;
+        }
+        
+        .fc-event:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            z-index: 10 !important;
+        }
+        
+        .fc-event-title {
+            font-weight: 600 !important;
+        }
+        
+        /* Link "mais X eventos" */
+        .fc-more-link {
+            color: #FF69B4 !important;
+            font-weight: 600 !important;
+            background: rgba(255, 105, 180, 0.1) !important;
+            padding: 4px 8px !important;
+            border-radius: 6px !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .fc-more-link:hover {
+            background: rgba(255, 105, 180, 0.2) !important;
+            text-decoration: none !important;
+        }
+        
+        /* Popover de eventos */
+        .fc-popover {
+            background: #2a2a3e !important;
+            border: 2px solid #FF69B4 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .fc-popover-header {
+            background: #FF69B4 !important;
+            color: white !important;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 12px !important;
+            font-weight: 700 !important;
+        }
+        
+        .fc-popover-body {
+            padding: 8px !important;
+        }
+        
+        /* Scrollbar customizada */
+        .fc-scroller::-webkit-scrollbar {
+            width: 8px !important;
+            height: 8px !important;
+        }
+        
+        .fc-scroller::-webkit-scrollbar-track {
+            background: #1e1e2e !important;
+            border-radius: 10px !important;
+        }
+        
+        .fc-scroller::-webkit-scrollbar-thumb {
+            background: #FF69B4 !important;
+            border-radius: 10px !important;
+        }
+        
+        .fc-scroller::-webkit-scrollbar-thumb:hover {
+            background: #FF1493 !important;
+        }
+        
+        /* Animações */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fc {
+            animation: fadeIn 0.5s ease !important;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .fc-toolbar-title {
+                font-size: 18px !important;
+            }
+            
+            .fc-button {
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+            }
+            
+            .fc-daygrid-day-number {
+                font-size: 13px !important;
+            }
+            
+            .fc-event {
+                font-size: 10px !important;
+                padding: 2px 4px !important;
+            }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Carregar agendamentos
     agendamentos = get_all_agendamentos()
     
@@ -1238,43 +1473,63 @@ elif menu_option == "📅 Calendário":
             data_agend = parse_agend_date(agend['data'])
             hora_agend = agend['hora']
             
-            # Determinar label do dia
+            # Determinar label do dia e cor
             if data_agend == hoje:
                 dia_label = "🔴 HOJE"
+                cor_badge = "#F44336"
             elif data_agend == amanha:
                 dia_label = "📅 Amanhã"
+                cor_badge = "#FF9800"
             else:
                 dias_diff = (data_agend - hoje).days
                 dia_label = f"📅 Em {dias_diff} dias"
+                cor_badge = "#2196F3"
             
-            # Card minimalista
-            with st.expander(f"{dia_label} - {hora_agend} | {agend['categoria']} {agend['local']}", expanded=(data_agend == hoje)):
-                col1, col2 = st.columns([3, 1])
-                
-                with col1:
-                    st.markdown(f"**📍 Local:** {agend['local']}")
-                    if agend.get('endereco'):
-                        st.markdown(f"**🗺️ Endereço:** {agend['endereco']}")
-                    if agend.get('contato'):
-                        st.markdown(f"**👤 Contato:** {agend['contato']}")
-                    if agend.get('telefone'):
-                        st.markdown(f"**📞 Telefone:** {agend['telefone']}")
-                    if agend.get('observacao'):
-                        st.markdown(f"**📝 Observação:** {agend['observacao']}")
-                    st.markdown(f"**📊 Status:** {agend.get('status', 'Agendado')}")
-                
-                with col2:
-                    if agend.get('link'):
-                        st.link_button("🗺️ Maps", agend['link'], use_container_width=True)
-                    
-                    if st.button("✏️ Editar", key=f"edit_prox_{agend['id']}", use_container_width=True):
-                        st.session_state[f'editing_agend_{agend["id"]}'] = True
+            # Card estilizado
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #2a2a3e 0%, #1e1e2e 100%);
+                border-left: 4px solid {cor_badge};
+                border-radius: 12px;
+                padding: 20px;
+                margin: 12px 0;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                transition: all 0.3s ease;
+            ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="
+                        background: {cor_badge};
+                        color: white;
+                        padding: 6px 14px;
+                        border-radius: 20px;
+                        font-weight: 700;
+                        font-size: 13px;
+                    ">{dia_label}</span>
+                    <span style="color: #FF69B4; font-weight: 600; font-size: 16px;">{hora_agend}</span>
+                </div>
+                <h3 style="color: white; margin: 8px 0;">{agend['categoria']} - {agend['local']}</h3>
+                <p style="color: #b0b0b0; margin: 4px 0;">📍 {agend.get('endereco', 'Endereço não informado')}</p>
+                <p style="color: #b0b0b0; margin: 4px 0;">📊 Status: {agend.get('status', 'Agendado')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Botões de ação
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if agend.get('link'):
+                    st.link_button("🗺️ Ver no Mapa", agend['link'], use_container_width=True)
+            
+            with col2:
+                if st.button("✏️ Editar", key=f"edit_prox_{agend['id']}", use_container_width=True):
+                    st.session_state[f'editing_agend_{agend["id"]}'] = True
+                    st.rerun()
+            
+            with col3:
+                if st.button("🗑️ Deletar", key=f"del_prox_{agend['id']}", use_container_width=True):
+                    if delete_agendamento(agend['id']):
+                        st.success("✅ Agendamento deletado!")
                         st.rerun()
-                    
-                    if st.button("🗑️ Deletar", key=f"del_prox_{agend['id']}", use_container_width=True):
-                        if delete_agendamento(agend['id']):
-                            st.success("✅ Agendamento deletado!")
-                            st.rerun()
     else:
         st.info("📭 Nenhuma visita agendada para os próximos 7 dias.")
     
@@ -1290,41 +1545,110 @@ elif menu_option == "📅 Calendário":
         # Preparar eventos para o calendário
         eventos = []
         
-        # Adicionar feriados
+        # Adicionar feriados brasileiros
         for data_feriado, nome_feriado in FERIADOS_2026.items():
             eventos.append({
                 "title": f"🔴 {nome_feriado}",
                 "start": data_feriado,
                 "end": data_feriado,
                 "color": "#F44336",
-                "allDay": True
+                "backgroundColor": "#F44336",
+                "borderColor": "#D32F2F",
+                "textColor": "#FFFFFF",
+                "allDay": True,
+                "display": "background",
+                "classNames": ["evento-feriado"]
             })
         
         # Adicionar agendamentos
         for agend in agendamentos:
-            data_str = agend['data'] if isinstance(agend['data'], str) else str(agend['data'])
-            hora_str = agend['hora'] if isinstance(agend['hora'], str) else str(agend['hora'])
-            
-            eventos.append({
-                "title": f"{agend['categoria']} - {agend['local']}",
-                "start": f"{data_str}T{hora_str}",
-                "color": agend.get('cor', '#FF69B4'),
-                "extendedProps": {
-                    "id": agend['id']
-                }
-            })
+            try:
+                data_str = agend['data'] if isinstance(agend['data'], str) else str(agend['data'])
+                hora_str = agend['hora'] if isinstance(agend['hora'], str) else str(agend['hora'])
+                
+                # Emoji da categoria (com fallback seguro)
+                emoji = "📅"  # Default
+                if agend['categoria'] and len(agend['categoria']) > 0:
+                    parts = agend['categoria'].split()
+                    first_char = parts[0] if parts else ""
+                    # Verificar se é realmente um emoji (Unicode range simplificado)
+                    # Emojis geralmente estão nas faixas altas do Unicode
+                    if first_char and len(first_char) <= 2 and ord(first_char[0]) > 127:
+                        emoji = first_char
+                
+                eventos.append({
+                    "title": f"{emoji} {agend['local']}",
+                    "start": f"{data_str}T{hora_str}",
+                    "color": agend.get('cor', '#FF69B4'),
+                    "backgroundColor": agend.get('cor', '#FF69B4'),
+                    "borderColor": agend.get('cor', '#FF69B4'),
+                    "textColor": "#FFFFFF",
+                    "extendedProps": {
+                        "id": agend['id'],
+                        "categoria": agend['categoria'],
+                        "local": agend['local'],
+                        "status": agend.get('status', ''),
+                        "observacao": agend.get('observacao', '')
+                    },
+                    "classNames": ["evento-agendamento"]
+                })
+            except Exception as e:
+                st.warning(f"⚠️ Erro ao processar um agendamento")
+                continue
         
-        # Configurações do calendário
+        # Configurações do calendário em PORTUGUÊS BRASILEIRO
         calendar_options = {
             "initialView": "dayGridMonth",
+            "locale": "pt-br",  # PORTUGUÊS BRASILEIRO
+            "buttonText": {
+                "today": "Hoje",
+                "month": "Mês",
+                "week": "Semana",
+                "day": "Dia",
+                "list": "Lista"
+            },
             "headerToolbar": {
                 "left": "prev,next today",
                 "center": "title",
                 "right": "dayGridMonth,timeGridWeek,timeGridDay"
             },
-            "locale": "pt-br",
-            "firstDay": 0,  # Domingo
-            "height": 600
+            "firstDay": 0,  # Domingo como primeiro dia
+            "dayHeaderFormat": {
+                "weekday": "short"  # Dom, Seg, Ter...
+            },
+            "height": 650,
+            "navLinks": True,
+            "editable": False,
+            "selectable": True,
+            "selectMirror": True,
+            "dayMaxEvents": True,
+            "weekNumbers": False,
+            "nowIndicator": True,  # Indicador de "agora"
+            
+            # Nomes dos meses em português
+            "monthNames": [
+                "Janeiro", "Fevereiro", "Março", "Abril", 
+                "Maio", "Junho", "Julho", "Agosto",
+                "Setembro", "Outubro", "Novembro", "Dezembro"
+            ],
+            "monthNamesShort": [
+                "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+                "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+            ],
+            
+            # Nomes dos dias em português
+            "dayNames": [
+                "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+                "Quinta-feira", "Sexta-feira", "Sábado"
+            ],
+            "dayNamesShort": [
+                "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"
+            ],
+            
+            # Textos adicionais
+            "allDayText": "Dia todo",
+            "noEventsText": "Nenhum evento para exibir",
+            "moreLinkText": "mais"
         }
         
         # Renderizar calendário
@@ -1334,7 +1658,7 @@ elif menu_option == "📅 Calendário":
             key="calendario_visitas"
         )
         
-        st.caption("🔴 Feriado   🔵 Agendamento   ⭐ Clique na data para ver detalhes")
+        st.caption("🔴 Feriado   📅 Agendamento   ⭐ Clique na data para ver detalhes")
         
     except ImportError:
         st.warning("⚠️ Biblioteca streamlit-calendar não instalada. Usando calendário simplificado.")
@@ -1470,30 +1794,48 @@ elif menu_option == "📅 Calendário":
             
             if submitted:
                 if nova_data and nova_hora and nova_categoria and novo_local:
-                    # Obter cor do status
-                    cor = STATUS_CORES.get(novo_status, "#FF69B4")
+                    try:
+                        # Obter cor do status
+                        cor = STATUS_CORES.get(novo_status, "#FF69B4")
+                        
+                        with st.spinner("⏳ Agendando visita..."):
+                            result = add_agendamento(
+                                data=str(nova_data),
+                                hora=str(nova_hora),
+                                categoria=nova_categoria,
+                                local=novo_local,
+                                endereco=novo_endereco,
+                                telefone=novo_telefone,
+                                contato=novo_contato,
+                                observacao=nova_observacao,
+                                status=novo_status,
+                                link=novo_link,
+                                cor=cor
+                            )
+                        
+                        if result:
+                            st.success(f"✅ Visita agendada para {nova_data.strftime('%d/%m/%Y')} às {nova_hora.strftime('%H:%M')}!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao agendar visita. Verifique os dados e tente novamente.")
                     
-                    result = add_agendamento(
-                        data=str(nova_data),
-                        hora=str(nova_hora),
-                        categoria=nova_categoria,
-                        local=novo_local,
-                        endereco=novo_endereco,
-                        telefone=novo_telefone,
-                        contato=novo_contato,
-                        observacao=nova_observacao,
-                        status=novo_status,
-                        link=novo_link,
-                        cor=cor
-                    )
-                    
-                    if result:
-                        st.success(f"✅ Visita agendada para {nova_data.strftime('%d/%m/%Y')} às {nova_hora}!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao agendar visita. Tente novamente.")
+                    except Exception as e:
+                        st.error(f"❌ Erro ao agendar visita")
+                        # Log detalhado apenas em modo de desenvolvimento
+                        if st.secrets.get("DEBUG_MODE", False):
+                            import traceback
+                            with st.expander("🔍 Ver detalhes do erro (DEBUG)"):
+                                st.code(traceback.format_exc())
                 else:
                     st.error("❌ Preencha todos os campos obrigatórios (*)")
+                    if not nova_data:
+                        st.warning("⚠️ Data é obrigatória")
+                    if not nova_hora:
+                        st.warning("⚠️ Hora é obrigatória")
+                    if not nova_categoria:
+                        st.warning("⚠️ Categoria é obrigatória")
+                    if not novo_local:
+                        st.warning("⚠️ Local é obrigatório")
     
     st.divider()
     
