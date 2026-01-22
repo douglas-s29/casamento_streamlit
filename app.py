@@ -1569,9 +1569,11 @@ elif menu_option == "📅 Calendário":
                 # Emoji da categoria (com fallback seguro)
                 emoji = "📅"  # Default
                 if agend['categoria'] and len(agend['categoria']) > 0:
-                    first_char = agend['categoria'].split()[0] if agend['categoria'].split() else ""
-                    # Verificar se é realmente um emoji (Unicode range)
-                    if first_char and ord(first_char[0]) > 127:
+                    parts = agend['categoria'].split()
+                    first_char = parts[0] if parts else ""
+                    # Verificar se é realmente um emoji (Unicode range simplificado)
+                    # Emojis geralmente estão nas faixas altas do Unicode
+                    if first_char and len(first_char) <= 2 and ord(first_char[0]) > 127:
                         emoji = first_char
                 
                 eventos.append({
@@ -1591,7 +1593,7 @@ elif menu_option == "📅 Calendário":
                     "classNames": ["evento-agendamento"]
                 })
             except Exception as e:
-                st.warning(f"⚠️ Erro ao processar agendamento {agend.get('id', 'desconhecido')}: {str(e)}")
+                st.warning(f"⚠️ Erro ao processar um agendamento")
                 continue
         
         # Configurações do calendário em PORTUGUÊS BRASILEIRO
@@ -1818,7 +1820,7 @@ elif menu_option == "📅 Calendário":
                             st.error("❌ Erro ao agendar visita. Verifique os dados e tente novamente.")
                     
                     except Exception as e:
-                        st.error(f"❌ Erro ao agendar visita: {str(e)}")
+                        st.error(f"❌ Erro ao agendar visita")
                         # Log detalhado apenas em modo de desenvolvimento
                         if st.secrets.get("DEBUG_MODE", False):
                             import traceback
