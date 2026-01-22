@@ -131,21 +131,25 @@ def gerar_ics_agendamento(agendamento):
     
     # Alarme/Lembrete (1 dia antes às 9h)
     # Calcular trigger: diferença entre o evento e 9h do dia anterior
+    # Só adiciona se o alarme for antes do evento (para eventos após 9h)
     dia_anterior_9h = tz.localize(datetime.combine(data_agend - timedelta(days=1), dt_time(9, 0)))
     trigger_1dia = dia_anterior_9h - inicio
     
-    alarme = Alarm()
-    alarme.add('action', 'DISPLAY')
-    alarme.add('description', f"Lembrete: {titulo}")
-    alarme.add('trigger', trigger_1dia)
-    evento.add_component(alarme)
+    # Só adiciona o alarme se ele for antes do evento (timedelta negativo)
+    if trigger_1dia.total_seconds() < 0:
+        alarme = Alarm()
+        alarme.add('action', 'DISPLAY')
+        alarme.add('description', f"Lembrete: {titulo}")
+        alarme.add('trigger', trigger_1dia)
+        evento.add_component(alarme)
     
-    # Alarme adicional (2 horas antes)
-    alarme2 = Alarm()
-    alarme2.add('action', 'DISPLAY')
-    alarme2.add('description', f"Lembrete: Visita em 2 horas - {agendamento['local']}")
-    alarme2.add('trigger', timedelta(hours=-2))
-    evento.add_component(alarme2)
+    # Alarme adicional (2 horas antes) - sempre adiciona se houver pelo menos 2h de antecedência
+    if hora_agend.hour >= 2 or (hora_agend.hour == 1 and hora_agend.minute > 0):
+        alarme2 = Alarm()
+        alarme2.add('action', 'DISPLAY')
+        alarme2.add('description', f"Lembrete: Visita em 2 horas - {agendamento['local']}")
+        alarme2.add('trigger', timedelta(hours=-2))
+        evento.add_component(alarme2)
     
     # Adicionar evento ao calendário
     cal.add_component(evento)
@@ -250,21 +254,24 @@ def gerar_ics_multiplos_agendamentos(agendamentos, nome_arquivo="visitas"):
             
             # Alarme (1 dia antes às 9h)
             # Calcular trigger: diferença entre o evento e 9h do dia anterior
+            # Só adiciona se o alarme for antes do evento (para eventos após 9h)
             dia_anterior_9h = tz.localize(datetime.combine(data_agend - timedelta(days=1), dt_time(9, 0)))
             trigger_1dia = dia_anterior_9h - inicio
             
-            alarme = Alarm()
-            alarme.add('action', 'DISPLAY')
-            alarme.add('description', f"Lembrete: {agendamento['local']}")
-            alarme.add('trigger', trigger_1dia)
-            evento.add_component(alarme)
+            # Só adiciona o alarme se ele for antes do evento (timedelta negativo)
+            if trigger_1dia.total_seconds() < 0:
+                alarme = Alarm()
+                alarme.add('action', 'DISPLAY')
+                alarme.add('description', f"Lembrete: {agendamento['local']}")
+                alarme.add('trigger', trigger_1dia)
+                evento.add_component(alarme)
             
             # Adicionar ao calendário
             cal.add_component(evento)
         
-        except Exception as e:
-            # Log do erro mas continua processando outros agendamentos
-            print(f"Erro ao processar agendamento {agendamento.get('id', 'desconhecido')}: {str(e)}")
+        except Exception:
+            # Ignora erro e continua processando outros agendamentos
+            # O evento não será incluído se houver erro
             continue
     
     return cal.to_ical()
