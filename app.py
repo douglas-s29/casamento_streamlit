@@ -1566,8 +1566,13 @@ elif menu_option == "📅 Calendário":
                 data_str = agend['data'] if isinstance(agend['data'], str) else str(agend['data'])
                 hora_str = agend['hora'] if isinstance(agend['hora'], str) else str(agend['hora'])
                 
-                # Emoji da categoria
-                emoji = agend['categoria'].split()[0] if agend['categoria'] else "📅"
+                # Emoji da categoria (com fallback seguro)
+                emoji = "📅"  # Default
+                if agend['categoria'] and len(agend['categoria']) > 0:
+                    first_char = agend['categoria'].split()[0] if agend['categoria'].split() else ""
+                    # Verificar se é realmente um emoji (Unicode range)
+                    if first_char and ord(first_char[0]) > 127:
+                        emoji = first_char
                 
                 eventos.append({
                     "title": f"{emoji} {agend['local']}",
@@ -1808,17 +1813,17 @@ elif menu_option == "📅 Calendário":
                         
                         if result:
                             st.success(f"✅ Visita agendada para {nova_data.strftime('%d/%m/%Y')} às {nova_hora.strftime('%H:%M')}!")
-                            import time
-                            time.sleep(1)
                             st.rerun()
                         else:
                             st.error("❌ Erro ao agendar visita. Verifique os dados e tente novamente.")
                     
                     except Exception as e:
                         st.error(f"❌ Erro ao agendar visita: {str(e)}")
-                        import traceback
-                        with st.expander("🔍 Ver detalhes do erro"):
-                            st.code(traceback.format_exc())
+                        # Log detalhado apenas em modo de desenvolvimento
+                        if st.secrets.get("DEBUG_MODE", False):
+                            import traceback
+                            with st.expander("🔍 Ver detalhes do erro (DEBUG)"):
+                                st.code(traceback.format_exc())
                 else:
                     st.error("❌ Preencha todos os campos obrigatórios (*)")
                     if not nova_data:

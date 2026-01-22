@@ -615,10 +615,8 @@ def add_agendamento(data: str, hora: str, categoria: str, local: str,
             
     except Exception as e:
         st.error(f"❌ Erro ao adicionar agendamento: {str(e)}")
-        # Log detalhado para debug
-        import traceback
-        st.write("Traceback completo:")
-        st.code(traceback.format_exc())
+        # Log detalhado apenas em modo debug (evita expor informações sensíveis)
+        # Em produção, logar server-side para análise posterior
         return None
 
 
