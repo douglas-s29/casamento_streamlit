@@ -585,10 +585,15 @@ def add_agendamento(data: str, hora: str, categoria: str, local: str,
         Dados do agendamento criado ou None em caso de erro
     """
     try:
+        # Validar dados antes de inserir
+        if not data or not hora or not categoria or not local:
+            st.error("❌ Campos obrigatórios faltando")
+            return None
+        
         supabase = init_supabase()
         agend_data = {
-            "data": data,
-            "hora": hora,
+            "data": str(data),
+            "hora": str(hora),
             "categoria": categoria,
             "local": local,
             "endereco": endereco,
@@ -601,9 +606,19 @@ def add_agendamento(data: str, hora: str, categoria: str, local: str,
         }
         response = supabase.table("agendamentos").insert(agend_data).execute()
         get_all_agendamentos.clear()  # Limpa o cache
-        return response.data
+        
+        if response.data:
+            return response.data
+        else:
+            st.error("❌ Nenhum dado retornado do Supabase")
+            return None
+            
     except Exception as e:
-        st.error(f"❌ Erro ao adicionar agendamento: {e}")
+        st.error(f"❌ Erro ao adicionar agendamento: {str(e)}")
+        # Log detalhado para debug
+        import traceback
+        st.write("Traceback completo:")
+        st.code(traceback.format_exc())
         return None
 
 
