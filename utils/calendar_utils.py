@@ -4,7 +4,7 @@ para exportação de agendamentos para Google Calendar, Apple Calendar, Outlook,
 """
 
 from icalendar import Calendar, Event, Alarm
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 import pytz
 
 def gerar_ics_agendamento(agendamento):
@@ -130,10 +130,14 @@ def gerar_ics_agendamento(agendamento):
         evento.add('url', agendamento['link'])
     
     # Alarme/Lembrete (1 dia antes às 9h)
+    # Calcular trigger: diferença entre o evento e 9h do dia anterior
+    dia_anterior_9h = tz.localize(datetime.combine(data_agend - timedelta(days=1), dt_time(9, 0)))
+    trigger_1dia = dia_anterior_9h - inicio
+    
     alarme = Alarm()
     alarme.add('action', 'DISPLAY')
     alarme.add('description', f"Lembrete: {titulo}")
-    alarme.add('trigger', timedelta(days=-1, hours=9))  # 1 dia antes às 9h
+    alarme.add('trigger', trigger_1dia)
     evento.add_component(alarme)
     
     # Alarme adicional (2 horas antes)
@@ -244,11 +248,15 @@ def gerar_ics_multiplos_agendamentos(agendamentos, nome_arquivo="visitas"):
             if agendamento.get('link'):
                 evento.add('url', agendamento['link'])
             
-            # Alarme (1 dia antes)
+            # Alarme (1 dia antes às 9h)
+            # Calcular trigger: diferença entre o evento e 9h do dia anterior
+            dia_anterior_9h = tz.localize(datetime.combine(data_agend - timedelta(days=1), dt_time(9, 0)))
+            trigger_1dia = dia_anterior_9h - inicio
+            
             alarme = Alarm()
             alarme.add('action', 'DISPLAY')
             alarme.add('description', f"Lembrete: {agendamento['local']}")
-            alarme.add('trigger', timedelta(days=-1, hours=9))
+            alarme.add('trigger', trigger_1dia)
             evento.add_component(alarme)
             
             # Adicionar ao calendário
