@@ -143,8 +143,11 @@ def gerar_ics_agendamento(agendamento):
         alarme.add('trigger', trigger_1dia)
         evento.add_component(alarme)
     
-    # Alarme adicional (2 horas antes) - sempre adiciona se houver pelo menos 2h de antecedência
-    if hora_agend.hour >= 2 or (hora_agend.hour == 1 and hora_agend.minute > 0):
+    # Alarme adicional (2 horas antes)
+    # Só adiciona se o horário do evento permitir um alarme 2h antes no mesmo dia
+    # (eventos depois das 02:00 ou entre 01:01 e 01:59)
+    hora_em_minutos = hora_agend.hour * 60 + hora_agend.minute
+    if hora_em_minutos >= 120:  # >= 02:00 (120 minutos)
         alarme2 = Alarm()
         alarme2.add('action', 'DISPLAY')
         alarme2.add('description', f"Lembrete: Visita em 2 horas - {agendamento['local']}")
@@ -269,9 +272,9 @@ def gerar_ics_multiplos_agendamentos(agendamentos, nome_arquivo="visitas"):
             # Adicionar ao calendário
             cal.add_component(evento)
         
-        except Exception:
-            # Ignora erro e continua processando outros agendamentos
-            # O evento não será incluído se houver erro
+        except (ValueError, KeyError, TypeError, AttributeError):
+            # Ignora agendamentos com dados inválidos e continua processando
+            # Possíveis erros: data/hora inválida, campos obrigatórios faltando
             continue
     
     return cal.to_ical()
